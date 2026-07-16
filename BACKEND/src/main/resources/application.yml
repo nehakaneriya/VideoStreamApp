@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: VideoStreamApp
+
+  # Active profile — env variable se override ho sakta hai
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  # Async request timeout — video upload ke liye (ffmpeg processing)
+  mvc:
+    async:
+      request-timeout: 600000
+
+  # File upload size limits
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+
+# Video file storage paths
+files:
+  video: ${VIDEO_STORAGE_PATH:videos/}
+
+file:
+  video:
+    hls: ${HLS_STORAGE_PATH:videos_hls/}

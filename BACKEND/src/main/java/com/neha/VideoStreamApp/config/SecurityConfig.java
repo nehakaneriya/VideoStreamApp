@@ -1,0 +1,200 @@
+package com.neha.VideoStreamApp.config;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.neha.VideoStreamApp.dtos.ApiError;
+import com.neha.VideoStreamApp.repositories.RoleRepository;
+import com.neha.VideoStreamApp.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
+
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+public class SecurityConfig {
+
+    private final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuthenticationSuccessHandler successHandler;
+    private final ObjectMapper objectMapper;
+
+    @Value("${app.auth.frontend.failure-redirect}")
+    private String frontEndFailureUrl;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AuthenticationSuccessHandler successHandler, ObjectMapper objectMapper) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.successHandler = successHandler;
+        this.objectMapper = objectMapper;
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+        http.csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+
+                        // ── 1. PUBLIC ─────────────────────────────────────────────────────
+                        .requestMatchers(AppConstants.AUTH_PUBLIC_URLS).permitAll()
+
+                        // ── 2. AUTH → /auth/me ────────────────────────────────────────────
+                        // Session verify endpoint — login hona zaroori
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/me")
+                        .hasAnyRole(AppConstants.USER_ROLE, AppConstants.ADMIN_ROLE)
+
+                        // ── 3. ADMIN PANEL ────────────────────────────────────────────────
+                        // /api/v1/admin/** — sirf ADMIN role
+                        .requestMatchers(AppConstants.AUTH_ADMIN_URLS)
+                        .hasRole(AppConstants.ADMIN_ROLE)
+
+                        // ── 4. VIDEO — UPLOAD (POST) ──────────────────────────────────────
+                        // Login hona zaroori, USER ya ADMIN dono kar sakte hain
+                        .requestMatchers(HttpMethod.POST, "/api/v1/videos")
+                        .hasAnyRole(AppConstants.USER_ROLE, AppConstants.ADMIN_ROLE)
+
+                        // ── 5. VIDEO — DELETE ─────────────────────────────────────────────
+                        // Controller mein ownership check hai (sirf apna video delete hoga)
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/videos/**")
+                        .hasAnyRole(AppConstants.USER_ROLE, AppConstants.ADMIN_ROLE)
+
+                        // ── 6. VIDEO — MY VIDEOS ──────────────────────────────────────────
+                        // Apne uploaded videos — login zaroori
+                        .requestMatchers(HttpMethod.GET, "/api/v1/videos/my-videos")
+                        .hasAnyRole(AppConstants.USER_ROLE, AppConstants.ADMIN_ROLE)
+
+                        // ── 7. USER — EMAIL LOOKUP ────────────────────────────────────────
+                        // /users/email/{email} — login zaroori
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/email/**")
+                        .hasAnyRole(AppConstants.USER_ROLE, AppConstants.ADMIN_ROLE)
+
+                        // ── 8. USER — UPDATE OWN PROFILE ─────────────────────────────────
+                        // PUT /api/v1/users/{id} — Controller mein ownership check hai
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/users/**")
+                        .hasAnyRole(AppConstants.USER_ROLE, AppConstants.ADMIN_ROLE)
+
+                        // ── 9. USER — DELETE OWN ACCOUNT ─────────────────────────────────
+                        // DELETE /api/v1/users/{id} — Controller mein ownership check hai
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/users/**")
+                        .hasAnyRole(AppConstants.USER_ROLE, AppConstants.ADMIN_ROLE)
+
+                        // ── 10. FEEDBACK — USER SUBMIT ────────────────────────────────────
+                        // POST /api/v1/feedback — login hona zaroori
+                        .requestMatchers(HttpMethod.POST, "/api/v1/feedback")
+                        .hasAnyRole(AppConstants.USER_ROLE, AppConstants.ADMIN_ROLE)
+
+                        // ── 11. BAKI SAB — authenticated hona zaroori ────────────────────
+                        .anyRequest().authenticated()
+                )
+
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(successHandler)
+                        .failureHandler((req, res, ex) -> {
+                            logger.error("OAuth2 login failed: {}", ex.getMessage());
+                            // authorization_request_not_found — user ne back dabaya ya session expire
+                            // Seedha login page pe bhejo with error message
+                            res.sendRedirect(frontEndFailureUrl + "?error=" + ex.getMessage());
+                        })
+                        // Authorization request cookie mein store karo — session pe depend mat karo
+                        .authorizationEndpoint(auth ->
+                                auth.authorizationRequestRepository(
+                                        new org.springframework.security.oauth2.client.web
+                                                .HttpSessionOAuth2AuthorizationRequestRepository()
+                                )
+                        )
+                )
+                .logout(AbstractHttpConfigurer::disable)
+                .exceptionHandling(ex->ex.authenticationEntryPoint((request, response, e ) -> {
+                    //e.printStackTrace();
+                    response.setStatus(401);
+                    response.setContentType("application/json");
+
+                    String message="Unauthorized Access !"+ e.getMessage();
+                    String error= (String) request.getAttribute("error");
+                    if (error!=null){
+                        message=error;
+                    }
+
+
+                    var apiError= ApiError.of(HttpStatus.UNAUTHORIZED.value(), "Unauthorized Access",message,request.getRequestURI(),true);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write(objectMapper.writeValueAsString(apiError));
+                })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+
+                           response.setStatus(403);
+                           response.setContentType("application/json");
+                           String message = accessDeniedException.getMessage();
+                           String error =(String) request.getAttribute("error");
+                           if (error!=null){
+                               message =error;
+                           }
+                            var apiError = ApiError.of(
+                                    HttpStatus.FORBIDDEN.value(),
+                                    "Access Denied",
+                                    accessDeniedException.getMessage(),
+                                    request.getRequestURI(),
+                                    true
+                            );
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write(objectMapper.writeValueAsString(apiError));
+                        })
+                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource(
+            @Value("${app.cors.front-end-url}") String corsUrls
+    ){
+        String[] urls = corsUrls.trim().split(",");
+
+        var config=new CorsConfiguration();
+        config.setAllowedOrigins(Arrays.asList(urls));
+        config.setAllowedMethods(List.of("GET","POST","DELETE","PUT","OPTIONS","PATCH","HEAD"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Refresh-Token", "X-Requested-With"));
+        config.setAllowCredentials(true);
+
+        var source=new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**",config);
+        return source;
+    }
+}

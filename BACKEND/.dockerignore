@@ -1,0 +1,15 @@
+target/
+.idea/
+.mvn/
+*.iml
+videos/
+videos_hls/
+SREENSORT/
+.env
+.env.*
+*.log
+HELP.md
+Dockerfile
+.dockerignore
+.git
+.gitignore

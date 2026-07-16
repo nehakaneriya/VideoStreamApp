@@ -1,0 +1,92 @@
+# ─────────────────────────────────────────────────────────────
+# PROD Profile — Production server ke liye
+# Koi bhi default value NAHI — sabhi env vars server pe set karo
+# Missing variable = app start nahi hogi (intentional)
+# ─────────────────────────────────────────────────────────────
+
+server:
+  port: ${SERVER_PORT:2911}
+
+spring:
+  # ── Database ──────────────────────────────────────────────
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20           # Prod mein zyada connections
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # ── JPA / Hibernate ───────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  # ── OAuth2 ────────────────────────────────────────────────
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+              - openid
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope:
+              - user:email
+              - read:user
+
+    # ── JWT ─────────────────────────────────────────────────
+    jwt:
+      secret: ${JWT_SECRET}           # 64+ chars zaroori — no default
+      issuer: ${JWT_ISSUER}
+      access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:300}
+      refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS:604800}  # 7 days prod mein
+      refresh-token-cookie-name: ${JWT_REFRESH_COOKIE_NAME:refreshToken}
+      admin-refresh-token-cookie-name: ${JWT_ADMIN_REFRESH_COOKIE_NAME:adminRefreshToken}
+      cookie-secure: true             # Prod mein HTTPS zaroori
+      cookie-http-only: true
+      cookie-same-site: strict        # Prod mein strict
+      cookie-domain: ${JWT_COOKIE_DOMAIN}
+
+# ── Swagger — PROD mein completely OFF ────────────────────────
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+# ── App Config ────────────────────────────────────────────────
+app:
+  cors:
+    front-end-url: ${FRONT_END_URL}
+  auth:
+    frontend:
+      success-redirect: ${FRONT_END_SUCCESS_REDIRECT}
+      failure-redirect: ${FRONT_END_FAILURE_REDIRECT}
+  admin:
+    email: ${ADMIN_EMAIL}
+    password: ${ADMIN_PASSWORD}
+
+# ── Logging — Prod mein sirf errors ───────────────────────────
+logging:
+  level:
+    root: ERROR
+    com.neha.VideoStreamApp: WARN
+    org.springframework.security: ERROR
+    org.springframework.web: ERROR
+  file:
+    name: ${LOG_FILE_PATH:logs/videostream.log}   # File mein save hoga

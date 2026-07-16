@@ -1,0 +1,99 @@
+# ─────────────────────────────────────────────────────────────
+# DEV Profile — Local development ke liye
+# Saari values .env file se aati hain (IntelliJ EnvFile plugin)
+# Default values sirf tab use hongi jab .env set nahi ho
+# ─────────────────────────────────────────────────────────────
+
+server:
+  port: 2911
+
+spring:
+  # ── Database ──────────────────────────────────────────────
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/videostreamdb}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 30000
+
+  # ── Session — OAuth2 ke liye zaroori ──────────────────────
+  # OAuth2 flow mein nonce/state session mein store hoti hai
+  # In-memory session dev ke liye theek hai
+  session:
+    store-type: none
+    timeout: 300s    # 5 minute — OAuth2 flow complete hone ke liye kaafi hai
+
+  # ── JPA / Hibernate ───────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  # ── OAuth2 ────────────────────────────────────────────────
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:test-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:test-client-secret}
+            scope:
+              - email
+              - profile
+              - openid
+          github:
+            client-id: ${GITHUB_CLIENT_ID:test-client-id}
+            client-secret: ${GITHUB_CLIENT_SECRET:test-client-secret}
+            scope:
+              - user:email
+              - read:user
+
+    # ── JWT ─────────────────────────────────────────────────
+    jwt:
+      secret: ${JWT_SECRET:ahenoknddjnjncjjcnvbhuhfuerueyrwueiiwokjcvnbcvncbvcbnbgdgewryruwqiudhjjjn}
+      issuer: ${JWT_ISSUER:videostream.com}
+      access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:300}
+      refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS:86400}
+      refresh-token-cookie-name: ${JWT_REFRESH_COOKIE_NAME:refreshToken}
+      admin-refresh-token-cookie-name: ${JWT_ADMIN_REFRESH_COOKIE_NAME:adminRefreshToken}
+      cookie-secure: false
+      cookie-http-only: true
+      cookie-same-site: lax
+      cookie-domain: localhost
+
+# ── Swagger / OpenAPI — DEV mein ON ───────────────────────────
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
+
+# ── App Config ────────────────────────────────────────────────
+app:
+  cors:
+    front-end-url: ${FRONT_END_URL:http://localhost:1304}
+  auth:
+    frontend:
+      success-redirect: ${FRONT_END_SUCCESS_REDIRECT:http://localhost:1304/oauth/success}
+      failure-redirect: ${FRONT_END_FAILURE_REDIRECT:http://localhost:1304/oauth/failure}
+  admin:
+    email: ${ADMIN_EMAIL:admin@gmail.com}
+    password: ${ADMIN_PASSWORD:admin123}
+
+# ── Logging ───────────────────────────────────────────────────
+logging:
+  level:
+    root: WARN
+    com.neha.VideoStreamApp: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN

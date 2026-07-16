@@ -1,0 +1,179 @@
+package com.neha.VideoStreamApp.services.impl;
+
+import com.neha.VideoStreamApp.config.AppConstants;
+import com.neha.VideoStreamApp.dtos.AdminDashboardDto;
+import com.neha.VideoStreamApp.dtos.UserDto;
+import com.neha.VideoStreamApp.dtos.VideoDto;
+import com.neha.VideoStreamApp.entities.Role;
+import com.neha.VideoStreamApp.entities.User;
+import com.neha.VideoStreamApp.entities.Video;
+import com.neha.VideoStreamApp.exception.ResourceNotFoundException;
+import com.neha.VideoStreamApp.repositories.RefreshTokenRepository;
+import com.neha.VideoStreamApp.repositories.RoleRepository;
+import com.neha.VideoStreamApp.repositories.UserRepository;
+import com.neha.VideoStreamApp.repositories.VideoRepository;
+import com.neha.VideoStreamApp.services.AdminService;
+import com.neha.VideoStreamApp.services.VideoService;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class AdminServiceImpl implements AdminService {
+
+    private final Logger logger = LoggerFactory.getLogger(AdminServiceImpl.class);
+    private final UserRepository userRepository;
+    private final VideoRepository videoRepository;
+    private final RoleRepository roleRepository;
+    private final ModelMapper modelMapper;
+    private final VideoService videoService;
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    @Override
+    public AdminDashboardDto getDashboardStats() {
+
+        long totalUsers = userRepository.count();
+        long totalVideos = videoRepository.count();
+        long activeUsers = userRepository.findAll()
+                .stream()
+                .filter(User::isEnable)
+                .count();
+
+        long adminsCount = userRepository.findAll()
+                .stream()
+                .filter(user ->
+                        user.getRoles()
+                                .stream()
+                                .anyMatch(role ->
+                                        role.getName().equals("ROLE_ADMIN")
+                                )
+                )
+                .count();
+
+        return AdminDashboardDto.builder()
+                .totalUsers(totalUsers)
+                .totalVideos(totalVideos)
+                .activeUsers(activeUsers)
+                .adminsCount(adminsCount)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+    @Override
+    public List<UserDto> getAllUsers() {
+
+        return userRepository.findAll()
+                .stream()
+                .map(user -> modelMapper.map(user, UserDto.class))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public UserDto getUserById(UUID userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found")
+                );
+
+        return modelMapper.map(user, UserDto.class);
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(UUID userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found")
+                );
+
+        // Step 1: User ke saare videos ki files disk se delete karo
+        // (videos/ folder + videos_hls/ folder dono)
+        List<Video> userVideos = user.getVideos();
+        if (userVideos != null && !userVideos.isEmpty()) {
+            for (Video video : userVideos) {
+                try {
+                    videoService.delete(video.getVideoId());
+                } catch (Exception e) {
+                    logger.warn("Could not delete video files for videoId: {} — {}", video.getVideoId(), e.getMessage());
+                }
+            }
+        }
+
+        // Step 2: Refresh tokens delete karo
+        refreshTokenRepository.deleteByUser(user);
+
+        // Step 3: User delete karo (JPA cascade baaki DB records hatayega)
+        userRepository.delete(user);
+    }
+
+    @Override
+    public void assignAdminRole(UUID userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found")
+                );
+
+        Role adminRole = roleRepository
+                .findByName("ROLE_" + AppConstants.ADMIN_ROLE)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Admin role not found")
+                );
+
+        if (!user.getRoles().contains(adminRole)) {
+            user.getRoles().add(adminRole);
+            userRepository.save(user);
+        }
+    }
+
+    @Override
+    public List<VideoDto> getAllVideos() {
+
+        return videoRepository.findAll()
+                .stream()
+                .map(this::mapToVideoDto)
+                .toList();
+    }
+
+    @Override
+    public void deleteVideo(String videoId) {
+        videoService.delete(videoId);
+    }
+
+    private VideoDto mapToVideoDto(Video video) {
+
+        return VideoDto.builder()
+                .videoId(video.getVideoId())
+                .title(video.getTitle())
+                .description(video.getDescription())
+                .contentType(video.getContentType())
+                .filePath(video.getFilePath())
+                .userId(
+                        video.getUser() != null
+                                ? video.getUser().getId().toString()
+                                : null
+                )
+                .userName(
+                        video.getUser() != null
+                                ? video.getUser().getName()
+                                : null
+                )
+                .userEmail(
+                        video.getUser() != null
+                                ? video.getUser().getEmail()
+                                : null
+                )
+                .build();
+    }
+}

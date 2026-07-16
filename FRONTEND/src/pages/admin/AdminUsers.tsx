@@ -1,0 +1,201 @@
+import { useEffect, useState } from "react";
+import { getAllUsers, makeAdmin, deleteUser } from "../../service/Adminservice";
+import type UserT from "../../models/User";
+import { Trash2, ShieldCheck, User } from "lucide-react";
+import { toast } from "react-toastify";
+import useAdminStore from "@/auth/adminStore";
+import axios from "axios";
+
+export default function Users() {
+
+  const [users, setUsers] = useState<UserT[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [makingAdminId, setMakingAdminId] = useState<string | null>(null);
+
+  const adminUser = useAdminStore((state) => state.adminUser);
+
+  const loadUsers = () => {
+    setLoading(true);
+    getAllUsers()
+      .then(setUsers)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const handleMakeAdmin = async (id: string) => {
+    setMakingAdminId(id);
+    try {
+      await makeAdmin(id);
+      loadUsers();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setMakingAdminId(null);
+    }
+  };
+
+  const handleDelete = async (userId: string) => {
+    // Apne aap ko delete karne se roko
+    if (adminUser?.id === userId) {
+      toast.error("You cannot delete your own account!");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to delete this user?")) return;
+    setDeletingId(userId);
+    try {
+      await deleteUser(userId);
+      toast.success("User deleted successfully");
+      loadUsers();
+    } catch (err) {
+      const message =
+        axios.isAxiosError(err) && err.response?.data?.message
+          ? err.response.data.message
+          : "Failed to delete user";
+      toast.error(message);
+      console.error(err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <div className="p-2">
+      <h1 className="text-3xl font-bold mb-6">
+        <span className="text-red-600">Manage</span> Users
+      </h1>
+
+      {/* Stats Bar */}
+      <div className="flex gap-4 mb-6">
+        <div className="bg-[#181818] border border-gray-800 rounded-lg px-4 py-2 flex items-center gap-2">
+          <User size={16} className="text-red-600" />
+          <span className="text-gray-400 text-sm">Total:</span>
+          <span className="font-bold">{users.length}</span>
+        </div>
+        <div className="bg-[#181818] border border-gray-800 rounded-lg px-4 py-2 flex items-center gap-2">
+          <ShieldCheck size={16} className="text-red-600" />
+          <span className="text-gray-400 text-sm">Admins:</span>
+          <span className="font-bold">
+            {users.filter(u => u.roles.some(r => r.name === "ROLE_ADMIN")).length}
+          </span>
+        </div>
+      </div>
+
+      {/* Loading */}
+      {loading ? (
+        <div className="text-center py-20 text-gray-500">Loading users...</div>
+      ) : (
+        <div className="bg-[#181818] border border-gray-800 rounded-xl overflow-hidden">
+          <table className="w-full text-left">
+            <thead className="bg-[#111] border-b border-gray-800">
+              <tr>
+                <th className="p-4 text-gray-400 text-sm">Name</th>
+                <th className="p-4 text-gray-400 text-sm">Email</th>
+                <th className="p-4 text-gray-400 text-sm">Provider</th>
+                <th className="p-4 text-gray-400 text-sm">Roles</th>
+                <th className="p-4 text-gray-400 text-sm">Status</th>
+                <th className="p-4 text-gray-400 text-sm">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {users.map(user => (
+                <tr
+                  key={user.id}
+                  className="border-b border-gray-800 hover:bg-[#1f1f1f] transition"
+                >
+                  {/* Name */}
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-red-600/20 flex items-center justify-center text-red-500 font-bold text-sm">
+                        {user.name?.charAt(0).toUpperCase() || "?"}
+                      </div>
+                      <span>{user.name}</span>
+                    </div>
+                  </td>
+
+                  {/* Email */}
+                  <td className="p-4 text-gray-300">{user.email}</td>
+
+                  {/* Provider */}
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      user.provider === "GOOGLE"
+                        ? "bg-blue-600/20 text-blue-400"
+                        : user.provider === "GITHUB"
+                        ? "bg-purple-600/20 text-purple-400"
+                        : "bg-gray-700 text-gray-300"
+                    }`}>
+                      {user.provider || "LOCAL"}
+                    </span>
+                  </td>
+
+                  {/* Roles */}
+                  <td className="p-4">
+                    <div className="flex flex-wrap gap-1">
+                      {user.roles.map((role) => (
+                        <span
+                          key={role.name}
+                          className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            role.name === "ROLE_ADMIN"
+                              ? "bg-red-600/20 text-red-400"
+                              : "bg-gray-700 text-gray-300"
+                          }`}
+                        >
+                          {role.name.replace("ROLE_", "")}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+
+                  {/* Status */}
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      user.enable
+                        ? "bg-green-600/20 text-green-400"
+                        : "bg-red-600/20 text-red-400"
+                    }`}>
+                      {user.enable ? "Active" : "Disabled"}
+                    </span>
+                  </td>
+
+                  {/* Actions */}
+                  <td className="p-4">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleMakeAdmin(user.id)}
+                        disabled={
+                          makingAdminId === user.id ||
+                          user.roles.some(r => r.name === "ROLE_ADMIN")
+                        }
+                        className="flex items-center gap-1 px-3 py-1 bg-red-600 rounded hover:bg-red-500 text-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition"
+                      >
+                        <ShieldCheck size={14} />
+                        {makingAdminId === user.id ? "..." : "Make Admin"}
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(user.id)}
+                        disabled={deletingId === user.id}
+                        className="flex items-center gap-1 px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition"
+                      >
+                        <Trash2 size={14} />
+                        {deletingId === user.id ? "..." : "Delete"}
+                      </button>
+                    </div>
+                  </td>
+
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
