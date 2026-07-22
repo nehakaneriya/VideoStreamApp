@@ -1,7 +1,6 @@
 package com.neha.VideoStreamApp.security;
 
 
-import com.neha.VideoStreamApp.exception.ResourceNotFoundException;
 import com.neha.VideoStreamApp.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;

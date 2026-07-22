@@ -6,6 +6,10 @@ import apiClient from "@/config/ApiClient";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+// Backend/Nginx limit se match — VideoStreamApp mein max upload size 500MB hai
+const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024;
+const MAX_FILE_SIZE_LABEL = "500MB";
+
 export default function VideoUpload() {
   // State for video metadata (Title & Description)
   const [meta, setMeta] = useState({ title: "", description: "" });
@@ -28,6 +32,14 @@ export default function VideoUpload() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Size check — 500MB se badi file ko upload shuru karne se pehle hi reject karo
+    // (backend/nginx anyway reject karenge, par yahi rok dena better UX hai)
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      toast.error(`File too large! Max allowed size is ${MAX_FILE_SIZE_LABEL}.`);
+      e.target.value = ""; // input reset — same file dobara select karne pe change event fire ho
+      return;
+    }
 
     // Revoke previous URL if user changes the file
     if (videoPreview) URL.revokeObjectURL(videoPreview);
@@ -70,7 +82,7 @@ export default function VideoUpload() {
       });
 
       setShowSuccess(true);
-      toast.success("Video uploaded successfully! 🚀");
+      toast.success("Video uploaded successfully!");
       navigate("/UserHome/myvideos");
       
       // Optional: Reset form after success
@@ -121,6 +133,7 @@ export default function VideoUpload() {
             <input type="file" accept="video/*" onChange={handleFileChange} className="hidden" />
           </label>
           <span className="mt-3 text-sm text-gray-500 font-mono">{fileName}</span>
+          <span className="mt-1 text-xs text-gray-600">Max file size: {MAX_FILE_SIZE_LABEL}</span>
         </div>
 
         {/* Local Video Preview */}
