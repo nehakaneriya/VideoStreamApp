@@ -1,8 +1,8 @@
 package com.neha.VideoStreamApp.services;
 
-import com.neha.VideoStreamApp.dtos.AdminDashboardDto;
-import com.neha.VideoStreamApp.dtos.UserDto;
-import com.neha.VideoStreamApp.dtos.VideoDto;
+import com.neha.VideoStreamApp.dtos.response.AdminDashboardDto;
+import com.neha.VideoStreamApp.dtos.common.UserDto;
+import com.neha.VideoStreamApp.dtos.response.VideoDto;
 
 import java.util.List;
 import java.util.UUID;
@@ -15,4 +15,7 @@ public interface AdminService {
     void deleteVideo(String videoId);
     List<VideoDto> getAllVideos();
     void assignAdminRole(UUID userId);
+
+    // Admin role hatao — user wapas normal USER ban jayega
+    void removeAdminRole(UUID userId);
 }

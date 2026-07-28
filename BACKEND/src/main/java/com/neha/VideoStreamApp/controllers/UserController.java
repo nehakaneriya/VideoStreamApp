@@ -2,7 +2,7 @@ package com.neha.VideoStreamApp.controllers;
 
 
 import com.neha.VideoStreamApp.config.AppConstants;
-import com.neha.VideoStreamApp.dtos.UserDto;
+import com.neha.VideoStreamApp.dtos.common.UserDto;
 import com.neha.VideoStreamApp.services.UserService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;

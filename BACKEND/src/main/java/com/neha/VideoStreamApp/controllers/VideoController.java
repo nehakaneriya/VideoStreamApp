@@ -2,7 +2,7 @@ package com.neha.VideoStreamApp.controllers;
 
 import com.neha.VideoStreamApp.entities.User;
 import com.neha.VideoStreamApp.entities.Video;
-import com.neha.VideoStreamApp.dtos.VideoDto;
+import com.neha.VideoStreamApp.dtos.response.VideoDto;
 import com.neha.VideoStreamApp.exception.ResourceNotFoundException;
 import com.neha.VideoStreamApp.playload.CustomMessage;
 import com.neha.VideoStreamApp.repositories.UserRepository;
@@ -208,7 +208,7 @@ public class VideoController {
     @Value("${file.video.hls}")
     private  String HLS_DIR;
 
-    //Serve Master Playlist (master.m3u8)
+    //Serve Master Playlist (master.m3u8) — sab resolution variants list karta hai
     @GetMapping("/{videoId}/master.m3u8")
     public ResponseEntity<Resource> serverMasterFile(@PathVariable String videoId){
 
@@ -225,12 +225,33 @@ public class VideoController {
                 .body(resource);
     }
 
-    //Serve HLS Segment (.ts files)
-    @GetMapping("/{videoId}/{segment}.ts")
-    public ResponseEntity<Resource> serveSegments(@PathVariable String videoId,@PathVariable String segment) {
+    //Serve Resolution-specific Playlist (e.g. /{videoId}/720p/playlist.m3u8)
+    @GetMapping("/{videoId}/{resolution}/playlist.m3u8")
+    public ResponseEntity<Resource> serveResolutionPlaylist(
+            @PathVariable String videoId,
+            @PathVariable String resolution) {
+
+        Path path = Paths.get(HLS_DIR, videoId, resolution, "playlist.m3u8");
+        if (!Files.exists(path)) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        Resource resource = new FileSystemResource(path);
+
+        return ResponseEntity
+                .ok()
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.apple.mpegurl")
+                .body(resource);
+    }
+
+    //Serve HLS Segment (.ts files) — ab resolution-wise subfolder mein hain
+    @GetMapping("/{videoId}/{resolution}/{segment}.ts")
+    public ResponseEntity<Resource> serveSegments(
+            @PathVariable String videoId,
+            @PathVariable String resolution,
+            @PathVariable String segment) {
 
         //create a path for segment
-        Path path = Paths.get(HLS_DIR, videoId, segment + ".ts");
+        Path path = Paths.get(HLS_DIR, videoId, resolution, segment + ".ts");
         if (!Files.exists(path)) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }

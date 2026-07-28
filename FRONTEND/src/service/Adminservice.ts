@@ -28,6 +28,14 @@ export const makeAdmin = async (userId: string) => {
   return response.data;
 };
 
+// Remove Admin Role — user wapas normal USER ban jayega
+export const removeAdmin = async (userId: string) => {
+  const response = await apiClient.delete(
+    `/admin/users/${userId}/remove-admin`
+  );
+  return response.data;
+};
+
 // Delete User
 export const deleteUser = async (userId: string) => {
   const response = await apiClient.delete(

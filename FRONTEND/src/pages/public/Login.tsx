@@ -35,16 +35,12 @@ export default function Login() {
 
     try {
       setLoading(true)
-       const response = await login(loginData);
+       await login(loginData);
       toast.success("Welcome back!")
-      const isAdmin = response.user.roles?.some(
-         (r) => r.name === "ROLE_ADMIN"
-     );
-    if (isAdmin) {
-    navigate("/admin/dashboard");
-  } else {
-    navigate("/UserHome");
-  }
+      // Normal user login — hamesha UserHome pe jao.
+      // Admin panel sirf /admin-login se hi accessible hona chahiye (security),
+      // is user ke paas ROLE_ADMIN ho ya na ho, farak nahi padta.
+      navigate("/UserHome");
     } catch (error) {
       console.log("Login error:", error);
       const message =

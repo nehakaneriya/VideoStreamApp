@@ -1,12 +1,14 @@
 package com.neha.VideoStreamApp.controllers;
 
-import com.neha.VideoStreamApp.dtos.AdminDashboardDto;
-import com.neha.VideoStreamApp.dtos.UserDto;
-import com.neha.VideoStreamApp.dtos.VideoDto;
+import com.neha.VideoStreamApp.dtos.response.AdminDashboardDto;
+import com.neha.VideoStreamApp.dtos.common.UserDto;
+import com.neha.VideoStreamApp.dtos.response.CommentDto;
+import com.neha.VideoStreamApp.dtos.response.VideoDto;
 import com.neha.VideoStreamApp.entities.User;
 import com.neha.VideoStreamApp.exception.ResourceNotFoundException;
 import com.neha.VideoStreamApp.repositories.UserRepository;
 import com.neha.VideoStreamApp.services.AdminService;
+import com.neha.VideoStreamApp.services.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final UserRepository userRepository;
+    private final CommentService commentService;
 
     @GetMapping("/dashboard")
     public ResponseEntity<AdminDashboardDto> getDashboardStats() {
@@ -84,6 +87,43 @@ public class AdminController {
         adminService.assignAdminRole(id);
         Map<String, String> response = new HashMap<>();
         response.put("message", "Admin role assigned successfully to user ID: " + id);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/users/{id}/remove-admin")
+    public ResponseEntity<Map<String, String>> removeAdminRole(
+            @PathVariable UUID id,
+            Authentication authentication) {
+
+        // Logged in admin dhundho
+        User currentAdmin = userRepository
+                .findByEmail(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+
+        // Apna khud ka admin role hatane se roko — warna khud ko lock-out kar sakta hai
+        if (currentAdmin.getId().equals(id)) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "You cannot remove your own admin role");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
+        adminService.removeAdminRole(id);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Admin role removed successfully from user ID: " + id);
+        return ResponseEntity.ok(response);
+    }
+
+    // ── COMMENTS MODERATION ──────────────────────────────────────────────
+    @GetMapping("/comments")
+    public ResponseEntity<List<CommentDto>> getAllComments() {
+        return ResponseEntity.ok(commentService.getAllComments());
+    }
+
+    @DeleteMapping("/comments/{id}")
+    public ResponseEntity<Map<String, String>> deleteComment(@PathVariable String id) {
+        commentService.adminDeleteComment(id);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Comment deleted successfully");
         return ResponseEntity.ok(response);
     }
 }

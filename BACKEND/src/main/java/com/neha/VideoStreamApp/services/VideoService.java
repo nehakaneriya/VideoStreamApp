@@ -1,7 +1,7 @@
 package com.neha.VideoStreamApp.services;
 
 import com.neha.VideoStreamApp.entities.Video;
-import com.neha.VideoStreamApp.dtos.VideoDto;
+import com.neha.VideoStreamApp.dtos.response.VideoDto;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;

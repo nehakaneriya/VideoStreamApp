@@ -1,6 +1,6 @@
 package com.neha.VideoStreamApp.services.impl;
 
-import com.neha.VideoStreamApp.dtos.FeedbackDto;
+import com.neha.VideoStreamApp.dtos.response.FeedbackDto;
 import com.neha.VideoStreamApp.entities.Feedback;
 import com.neha.VideoStreamApp.entities.User;
 import com.neha.VideoStreamApp.exception.ResourceNotFoundException;

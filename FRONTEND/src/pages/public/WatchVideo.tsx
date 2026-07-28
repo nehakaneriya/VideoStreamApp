@@ -7,6 +7,7 @@ import { getHlsMasterUrl, getAllVideos } from "@/service/VideoService";
 import type { Video } from "@/models/Video";
 import { ArrowLeft, Calendar, Film } from "lucide-react";
 import VideoCard from "@/components/Video/VideoCard";
+import CommentSection from "@/components/Video/CommentSection";
 
 export default function WatchVideo() {
   const { videoId } = useParams();
@@ -137,6 +138,9 @@ export default function WatchVideo() {
               </p>
             </div>
           )}
+
+          {/* Comments Section */}
+          <CommentSection videoId={videoId} />
         </div>
 
         {/* RIGHT — Related Videos */}

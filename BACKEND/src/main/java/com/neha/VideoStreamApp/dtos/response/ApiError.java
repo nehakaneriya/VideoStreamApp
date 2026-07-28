@@ -1,4 +1,4 @@
-package com.neha.VideoStreamApp.dtos;
+package com.neha.VideoStreamApp.dtos.response;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;

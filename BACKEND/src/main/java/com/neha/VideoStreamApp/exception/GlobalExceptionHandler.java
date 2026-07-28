@@ -1,7 +1,7 @@
 package com.neha.VideoStreamApp.exception;
 
-import com.neha.VideoStreamApp.dtos.ApiError;
-import com.neha.VideoStreamApp.dtos.ErrorResponse;
+import com.neha.VideoStreamApp.dtos.response.ApiError;
+import com.neha.VideoStreamApp.dtos.response.ErrorResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;

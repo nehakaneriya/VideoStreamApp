@@ -30,11 +30,15 @@ public class AppConstants {
 
             // HLS streaming — public (video player ke liye token nahi chahiye)
             "/api/v1/videos/*/master.m3u8",
-            "/api/v1/videos/*/*.ts",
+            "/api/v1/videos/*/*/playlist.m3u8",
+            "/api/v1/videos/*/*/*.ts",
 
             // Legacy direct stream (public — HLS se replace ho chuka hai)
             "/api/v1/videos/stream/**",
     };
+
+    // ─── COMMENTS: GET public hai, POST/DELETE SecurityConfig mein method-wise protected ───
+    public static final String COMMENTS_GET_PATTERN = "/api/v1/videos/*/comments";
 
     // ─── ADMIN ONLY ──────────────────────────────────────────────────────────
     public static final String[] AUTH_ADMIN_URLS = {

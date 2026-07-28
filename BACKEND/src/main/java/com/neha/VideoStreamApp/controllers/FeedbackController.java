@@ -1,6 +1,6 @@
 package com.neha.VideoStreamApp.controllers;
 
-import com.neha.VideoStreamApp.dtos.FeedbackDto;
+import com.neha.VideoStreamApp.dtos.response.FeedbackDto;
 import com.neha.VideoStreamApp.services.FeedbackService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

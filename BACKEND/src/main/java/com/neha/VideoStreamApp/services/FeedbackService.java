@@ -1,6 +1,6 @@
 package com.neha.VideoStreamApp.services;
 
-import com.neha.VideoStreamApp.dtos.FeedbackDto;
+import com.neha.VideoStreamApp.dtos.response.FeedbackDto;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package com.neha.VideoStreamApp.dtos;
+package com.neha.VideoStreamApp.dtos.common;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.neha.VideoStreamApp.entities.Provider;

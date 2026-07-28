@@ -1,7 +1,7 @@
 package com.neha.VideoStreamApp.services.impl;
 
 import com.neha.VideoStreamApp.config.AppConstants;
-import com.neha.VideoStreamApp.dtos.UserDto;
+import com.neha.VideoStreamApp.dtos.common.UserDto;
 import com.neha.VideoStreamApp.entities.Provider;
 import com.neha.VideoStreamApp.entities.Role;
 import com.neha.VideoStreamApp.entities.User;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { getAllUsers, makeAdmin, deleteUser } from "../../service/Adminservice";
+import { getAllUsers, makeAdmin, removeAdmin, deleteUser } from "../../service/Adminservice";
 import type UserT from "../../models/User";
-import { Trash2, ShieldCheck, User } from "lucide-react";
+import { Trash2, ShieldCheck, ShieldOff, User } from "lucide-react";
 import { toast } from "react-toastify";
 import useAdminStore from "@/auth/adminStore";
 import axios from "axios";
@@ -12,6 +12,7 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [makingAdminId, setMakingAdminId] = useState<string | null>(null);
+  const [removingAdminId, setRemovingAdminId] = useState<string | null>(null);
 
   const adminUser = useAdminStore((state) => state.adminUser);
 
@@ -28,14 +29,40 @@ export default function Users() {
   }, []);
 
   const handleMakeAdmin = async (id: string) => {
+    if (!confirm("Are you sure you want to make this user an ADMIN? They will get full access to the admin panel.")) return;
     setMakingAdminId(id);
     try {
       await makeAdmin(id);
+      toast.success("Admin role assigned successfully");
       loadUsers();
     } catch (err) {
       console.error(err);
+      toast.error("Failed to assign admin role");
     } finally {
       setMakingAdminId(null);
+    }
+  };
+
+  const handleRemoveAdmin = async (id: string) => {
+    if (adminUser?.id === id) {
+      toast.error("You cannot remove your own admin role!");
+      return;
+    }
+    if (!confirm("Are you sure you want to remove ADMIN role from this user? They will become a normal user.")) return;
+    setRemovingAdminId(id);
+    try {
+      await removeAdmin(id);
+      toast.success("Admin role removed successfully");
+      loadUsers();
+    } catch (err) {
+      const message =
+        axios.isAxiosError(err) && err.response?.data?.message
+          ? err.response.data.message
+          : "Failed to remove admin role";
+      toast.error(message);
+      console.error(err);
+    } finally {
+      setRemovingAdminId(null);
     }
   };
 
@@ -84,6 +111,13 @@ export default function Users() {
             {users.filter(u => u.roles.some(r => r.name === "ROLE_ADMIN")).length}
           </span>
         </div>
+        <div className="bg-[#181818] border border-yellow-700/40 rounded-lg px-4 py-2 flex items-center gap-2">
+          <ShieldCheck size={16} className="text-yellow-500" />
+          <span className="text-gray-400 text-sm">Dual-Role:</span>
+          <span className="font-bold text-yellow-500">
+            {users.filter(u => u.roles.length > 1).length}
+          </span>
+        </div>
       </div>
 
       {/* Loading */}
@@ -104,10 +138,16 @@ export default function Users() {
             </thead>
 
             <tbody>
-              {users.map(user => (
+              {users.map(user => {
+                const isDualRole = user.roles.length > 1;
+                const isAdmin = user.roles.some(r => r.name === "ROLE_ADMIN");
+                return (
                 <tr
                   key={user.id}
-                  className="border-b border-gray-800 hover:bg-[#1f1f1f] transition"
+                  className={`border-b border-gray-800 hover:bg-[#1f1f1f] transition ${
+                    isDualRole ? "bg-yellow-900/10 border-l-2 border-l-yellow-600" : ""
+                  }`}
+                  title={isDualRole ? "This user has multiple roles" : undefined}
                 >
                   {/* Name */}
                   <td className="p-4">
@@ -171,13 +211,25 @@ export default function Users() {
                         onClick={() => handleMakeAdmin(user.id)}
                         disabled={
                           makingAdminId === user.id ||
-                          user.roles.some(r => r.name === "ROLE_ADMIN")
+                          isAdmin
                         }
                         className="flex items-center gap-1 px-3 py-1 bg-red-600 rounded hover:bg-red-500 text-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition"
                       >
                         <ShieldCheck size={14} />
                         {makingAdminId === user.id ? "..." : "Make Admin"}
                       </button>
+
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleRemoveAdmin(user.id)}
+                          disabled={removingAdminId === user.id || adminUser?.id === user.id}
+                          title={adminUser?.id === user.id ? "You cannot remove your own admin role" : undefined}
+                          className="flex items-center gap-1 px-3 py-1 bg-yellow-700 rounded hover:bg-yellow-600 text-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition"
+                        >
+                          <ShieldOff size={14} />
+                          {removingAdminId === user.id ? "..." : "Remove Admin"}
+                        </button>
+                      )}
 
                       <button
                         onClick={() => handleDelete(user.id)}
@@ -191,7 +243,8 @@ export default function Users() {
                   </td>
 
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

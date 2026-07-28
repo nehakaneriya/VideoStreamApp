@@ -1,7 +1,5 @@
-package com.neha.VideoStreamApp.dtos;
+package com.neha.VideoStreamApp.dtos.common;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Id;
 import lombok.*;
 
 import java.util.UUID;

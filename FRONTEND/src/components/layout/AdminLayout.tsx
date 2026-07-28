@@ -1,6 +1,6 @@
 import { NavLink, Outlet, Navigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { Menu, LayoutDashboard, Users, Video, LogOut, MessageSquare } from "lucide-react";
+import { Menu, LayoutDashboard, Users, Video, LogOut, MessageSquare, MessageCircle } from "lucide-react";
 import useAdminStore from "@/auth/adminStore";
 import { adminRefreshToken } from "@/service/Authservice";
 import LogoutConfirmModal from "@/components/layout/LogoutConfirmModal";
@@ -129,6 +129,18 @@ export default function AdminLayout() {
           >
             <MessageSquare size={20} />
             {!collapsed && "Feedback"}
+          </NavLink>
+
+          <NavLink
+            to="/admin/comments"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2 rounded-lg transition ${
+                isActive ? "bg-red-600" : "hover:bg-gray-800 text-gray-300"
+              }`
+            }
+          >
+            <MessageCircle size={20} />
+            {!collapsed && "Comments"}
           </NavLink>
 
           {/* Logout — modal ke saath */}

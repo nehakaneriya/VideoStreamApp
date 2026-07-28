@@ -1,7 +1,7 @@
 package com.neha.VideoStreamApp.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.neha.VideoStreamApp.dtos.ApiError;
+import com.neha.VideoStreamApp.dtos.response.ApiError;
 import com.neha.VideoStreamApp.repositories.RoleRepository;
 import com.neha.VideoStreamApp.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,7 +33,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -64,6 +63,13 @@ public class SecurityConfig {
 
                         // ── 1. PUBLIC ─────────────────────────────────────────────────────
                         .requestMatchers(AppConstants.AUTH_PUBLIC_URLS).permitAll()
+
+                        // ── 1b. COMMENTS — GET public (dekhna), POST/DELETE login zaroori ──
+                        .requestMatchers(HttpMethod.GET, AppConstants.COMMENTS_GET_PATTERN).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/videos/*/comments")
+                        .hasAnyRole(AppConstants.USER_ROLE, AppConstants.ADMIN_ROLE)
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/comments/*")
+                        .hasAnyRole(AppConstants.USER_ROLE, AppConstants.ADMIN_ROLE)
 
                         // ── 2. AUTH → /auth/me ────────────────────────────────────────────
                         // Session verify endpoint — login hona zaroori

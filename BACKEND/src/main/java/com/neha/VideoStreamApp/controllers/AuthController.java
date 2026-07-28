@@ -1,9 +1,9 @@
 package com.neha.VideoStreamApp.controllers;
 
-import com.neha.VideoStreamApp.dtos.LoginRequest;
-import com.neha.VideoStreamApp.dtos.RefreshTokenRequest;
-import com.neha.VideoStreamApp.dtos.TokenResponse;
-import com.neha.VideoStreamApp.dtos.UserDto;
+import com.neha.VideoStreamApp.dtos.request.LoginRequest;
+import com.neha.VideoStreamApp.dtos.request.RefreshTokenRequest;
+import com.neha.VideoStreamApp.dtos.response.TokenResponse;
+import com.neha.VideoStreamApp.dtos.common.UserDto;
 import com.neha.VideoStreamApp.entities.RefreshToken;
 import com.neha.VideoStreamApp.entities.User;
 import com.neha.VideoStreamApp.repositories.RefreshTokenRepository;

@@ -1,9 +1,9 @@
 package com.neha.VideoStreamApp.services.impl;
 
 import com.neha.VideoStreamApp.config.AppConstants;
-import com.neha.VideoStreamApp.dtos.AdminDashboardDto;
-import com.neha.VideoStreamApp.dtos.UserDto;
-import com.neha.VideoStreamApp.dtos.VideoDto;
+import com.neha.VideoStreamApp.dtos.response.AdminDashboardDto;
+import com.neha.VideoStreamApp.dtos.common.UserDto;
+import com.neha.VideoStreamApp.dtos.response.VideoDto;
 import com.neha.VideoStreamApp.entities.Role;
 import com.neha.VideoStreamApp.entities.User;
 import com.neha.VideoStreamApp.entities.Video;
@@ -135,6 +135,24 @@ public class AdminServiceImpl implements AdminService {
             user.getRoles().add(adminRole);
             userRepository.save(user);
         }
+    }
+
+    @Override
+    public void removeAdminRole(UUID userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found")
+                );
+
+        Role adminRole = roleRepository
+                .findByName("ROLE_" + AppConstants.ADMIN_ROLE)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Admin role not found")
+                );
+
+        user.getRoles().remove(adminRole);
+        userRepository.save(user);
     }
 
     @Override

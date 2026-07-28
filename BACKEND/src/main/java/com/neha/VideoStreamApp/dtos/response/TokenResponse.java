@@ -1,4 +1,6 @@
-package com.neha.VideoStreamApp.dtos;
+package com.neha.VideoStreamApp.dtos.response;
+
+import com.neha.VideoStreamApp.dtos.common.UserDto;
 
 public record TokenResponse(
         String accessToken,

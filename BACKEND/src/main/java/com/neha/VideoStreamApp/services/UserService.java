@@ -1,6 +1,6 @@
 package com.neha.VideoStreamApp.services;
 
-import com.neha.VideoStreamApp.dtos.UserDto;
+import com.neha.VideoStreamApp.dtos.common.UserDto;
 
 public interface UserService {
 

@@ -18,6 +18,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard"
 import AdminUsers from "./pages/admin/AdminUsers"
 import AdminVideos from "./pages/admin/AdminVideos"
 import AdminFeedback from "./pages/admin/AdminFeedback"
+import AdminComments from "./pages/admin/AdminComments"
 import UserProfile from "./pages/users/UserProfile"
 import UserFeedback from "./pages/users/UserFeedback"
 import OAuthSuccess from "./pages/public/OAuthSuccess"
@@ -58,6 +59,7 @@ createRoot(document.getElementById("root")!).render(
     <Route path="users" element={<AdminUsers />} />
     <Route path="videos" element={<AdminVideos />} />
     <Route path="feedbacks" element={<AdminFeedback />} />
+    <Route path="comments" element={<AdminComments />} />
   </Route>
 
 </Routes>

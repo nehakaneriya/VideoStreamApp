@@ -1,25 +1,34 @@
+# ==========================
+# Spring Boot / Maven
+# ==========================
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
+.mvn/wrapper/maven-wrapper.jar
+
+# ==========================
+# IDE
+# ==========================
+
+## IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+## Eclipse / STS
 .apt_generated
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
+## NetBeans
 /nbproject/private/
 /nbbuild/
 /dist/
@@ -29,11 +38,58 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
+## VS Code
 .vscode/
 
-### Environment Variables — NEVER commit karo ###
+# ==========================
+# Node / React
+# ==========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# React build
+FRONTEND/dist/
+FRONTEND/build/
+
+# ==========================
+# Environment Files
+# ==========================
 .env
-.env.local
-.env.dev
-.env.prod
+.env.*
+!.env.example
+
+# ==========================
+# Logs
+# ==========================
+*.log
+logs/
+
+# ==========================
+# OS Files
+# ==========================
+.DS_Store
+Thumbs.db
+
+# ==========================
+# Generated Video Files
+# ==========================
+BACKEND/videos/
+BACKEND/videos_hls/
+
+# Ignore video files everywhere
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.webm
+*.ts
+*.m3u8
+
+# ==========================
+# Temporary Files
+# ==========================
+*.tmp
+*.temp
