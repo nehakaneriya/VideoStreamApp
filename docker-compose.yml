@@ -24,7 +24,7 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_PASSWORD:-root}"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
     networks:
       - videostream-net
 

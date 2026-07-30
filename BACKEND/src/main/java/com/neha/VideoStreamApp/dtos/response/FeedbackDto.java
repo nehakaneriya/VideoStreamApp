@@ -14,6 +14,7 @@ public class FeedbackDto {
     private String id;
     private String message;
     private Instant createdAt;
+    private Instant updatedAt;
 
     // User details for display purposes (optional)
     private String userId;

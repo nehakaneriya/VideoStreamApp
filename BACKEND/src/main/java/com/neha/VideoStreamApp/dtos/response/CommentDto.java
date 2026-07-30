@@ -16,6 +16,7 @@ public class CommentDto {
     private String id;
     private String text;
     private Instant createdAt;
+    private Instant updatedAt;
 
     private String videoId;
     private String videoTitle;

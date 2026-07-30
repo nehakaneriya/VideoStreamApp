@@ -26,8 +26,8 @@ public class UserDto {
     private String password;
     private boolean enable=true;
 
-    private Instant createdAt =Instant.now();
-    private Instant updatedAt =Instant.now();
+    private Instant createdAt;
+    private Instant updatedAt;
 
     private Provider provider=Provider.LOCAL;
 

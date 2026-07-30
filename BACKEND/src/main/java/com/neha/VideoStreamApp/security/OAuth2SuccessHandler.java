@@ -132,7 +132,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                 .jti(jti)
                 .user(user)
                 .revoked(false)
-                .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(jwtService.getRefreshTtlSeconds()))
                 .build();
         refreshTokenRepository.save(refreshTokenOb);

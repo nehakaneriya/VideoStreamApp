@@ -18,7 +18,9 @@ public class VideoDto {
     private String description;
     private String contentType;
     private String filePath;
+
     private Instant createdAt;
+    private Instant updatedAt;
 
     // uploader details
     private String userId;

@@ -59,7 +59,6 @@ public class AuthController {
         var refreshTokenOb = RefreshToken.builder()
                 .jti(jti)
                 .user(user)
-                .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(jwtService.getRefreshTtlSeconds()))
                 .revoked(false)
                 .build();
@@ -142,7 +141,6 @@ public class AuthController {
         var newRefreshTokenOb = RefreshToken.builder()
                 .jti(newJti)
                 .user(user)
-                .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(jwtService.getRefreshTtlSeconds()))
                 .revoked(false)
                 .build();
@@ -265,7 +263,6 @@ public class AuthController {
         var refreshTokenOb = RefreshToken.builder()
                 .jti(jti)
                 .user(user)
-                .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(jwtService.getRefreshTtlSeconds()))
                 .revoked(false)
                 .build();
@@ -320,7 +317,6 @@ public class AuthController {
         var newRefreshTokenOb = RefreshToken.builder()
                 .jti(newJti)
                 .user(user)
-                .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(jwtService.getRefreshTtlSeconds()))
                 .revoked(false)
                 .build();

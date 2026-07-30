@@ -16,71 +16,53 @@ import java.util.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-
 @Entity
 @Table(name = "users")
-public class User implements UserDetails {
+public class User extends BaseEntity implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "user_id")
     private UUID id;
 
-    @Column(name = "user_email",unique = true,length = 300)
+    @Column(name = "user_email", unique = true, length = 300, nullable = false)
     private String email;
 
+    @Column(nullable = false)
     private String name;
 
     @JsonIgnore
     private String password;
-    private boolean enable=true;
 
-    private Instant createdAt =Instant.now();
-    private Instant updatedAt =Instant.now();
+    private boolean enable = true;
 
     @Enumerated(EnumType.STRING)
-    private Provider provider=Provider.LOCAL;
+    private Provider provider = Provider.LOCAL;
 
     private String providerId;
 
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable (
+    @JoinTable(
             name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private Set<Role> roles=new HashSet<>();
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
 
-    @PrePersist
-    protected void onCreate() {
-        Instant now=Instant.now();
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<Video> videos = new ArrayList<>();
 
-        if (createdAt==null) createdAt=now;
-        updatedAt=now;
-    }
-
-    @PreUpdate
-    protected void onUpdate(){
-        updatedAt=Instant.now();
-    }
-
-    //UserDetails All Method
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-
-        List<SimpleGrantedAuthority> authorities =
-                roles
-                        .stream()
-                        .map(role -> new SimpleGrantedAuthority(role.getName()))
-                        .toList();
-        return authorities;
+        return roles.stream()
+                .map(role -> new SimpleGrantedAuthority(role.getName()))
+                .toList();
     }
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonManagedReference // Ye batata hai ki ye Parent side hai
-    private List<Video> videos = new ArrayList<>();
     @Override
     public String getUsername() {
-        return this.email;
+        return email;
     }
 
     @Override
@@ -100,6 +82,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return this.enable;
+        return enable;
     }
 }

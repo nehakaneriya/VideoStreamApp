@@ -16,8 +16,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
-public class RefreshToken {
+public class RefreshToken extends BaseEntity {
 
         @Id
         @GeneratedValue(strategy = GenerationType.UUID)
@@ -29,9 +28,6 @@ public class RefreshToken {
         @ManyToOne(optional = false,fetch = FetchType.LAZY)
         @JoinColumn(name = "user_id",nullable = false,updatable = false)
         private User user;
-
-       @Column(updatable = false,nullable = false)
-        private Instant createdAt;
 
         @Column(nullable = false)
         private Instant expiresAt;
