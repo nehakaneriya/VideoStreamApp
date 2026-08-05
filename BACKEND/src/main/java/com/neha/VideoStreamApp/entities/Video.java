@@ -12,7 +12,13 @@ import org.springframework.data.annotation.LastModifiedDate;
 import java.time.Instant;
 
 @Entity
-@Table(name="yt_video")
+@Table(name="yt_video",
+        indexes = {
+                @Index(name = "idx_video_title", columnList = "title"),
+                @Index(name = "idx_video_user", columnList = "user_id"),
+                @Index(name = "idx_video_created", columnList = "createdAt"),
+                @Index(name = "idx_video_content_type", columnList = "contentType")
+        })
 @Getter
 @Setter
 @NoArgsConstructor

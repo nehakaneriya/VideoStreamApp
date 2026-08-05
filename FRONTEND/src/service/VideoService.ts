@@ -1,5 +1,6 @@
 import apiClient from "../config/ApiClient";
-import type { Video } from "../models/Video"; // Ya jahan bhi aapne Video model rakha hai
+import type { Video } from "../models/Video"; 
+import type { ScrollResponse } from "../models/ScrollResponse";
 
 export const uploadVideo = async (file: File, title: string, description: string) => {
     // 1. File upload ke liye FormData zaroori hai
@@ -25,9 +26,19 @@ export const getMyVideos = async (): Promise<Video[]> => {
     return response.data;
 };
 
-export const getAllVideos = async (): Promise<Video[]> => {
+export const getAllVideos = async (
+    search: string = "",
+    scrollId?: string,
+    pageSize: number = 12
+): Promise<ScrollResponse<Video>> => {
     // Public feed ke liye
-    const response = await apiClient.get("/videos");
+    const response = await apiClient.get("/videos", {
+        params: {
+            search,
+            scrollId,
+            pageSize
+        }
+    });
     return response.data;
 };
 

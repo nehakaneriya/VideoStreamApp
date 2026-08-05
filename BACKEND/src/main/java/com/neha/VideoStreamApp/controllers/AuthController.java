@@ -72,7 +72,6 @@ public class AuthController {
         String refreshToken = jwtService.generateRefreshToken(user, refreshTokenOb.getJti());
 
         // use cookie service to attach refresh token in cookie
-
         cookieService.attachRefreshCookie(response, refreshToken, (int) jwtService.getRefreshTtlSeconds());
         cookieService.addNoStoreHeaders(response);
 
@@ -93,8 +92,6 @@ public class AuthController {
 
 
     //access and refresh token renew karne lie lie api
-
-
     @PostMapping("/refresh")
     public ResponseEntity<TokenResponse> refreshToken(
             @RequestBody(required = false) RefreshTokenRequest body,
@@ -193,8 +190,6 @@ public class AuthController {
             if (fromCookie.isPresent()) {
                 return fromCookie;
             }
-
-
         }
 
         // 2 body:
@@ -221,10 +216,7 @@ public class AuthController {
                 }
             }
         }
-
         return Optional.empty();
-
-
     }
 
     @PostMapping("/register")
@@ -361,5 +353,4 @@ public class AuthController {
         }
         return Optional.empty();
     }
-
 }

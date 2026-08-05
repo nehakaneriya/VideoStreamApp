@@ -1,0 +1,76 @@
+package com.neha.VideoStreamApp.specifications;
+
+import com.neha.VideoStreamApp.entities.Video;
+import org.springframework.data.jpa.domain.Specification;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import jakarta.persistence.criteria.Predicate;
+
+public class VideoSpecification {
+
+    public static Specification<Video> build(
+            String search,
+            UUID userId,
+            Instant createdAfter,
+            Instant createdBefore,
+            String contentType
+    ) {
+        return (root, query, cb) -> {
+
+            // Create a list to hold the predicates
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (search != null && !search.isEmpty()) {
+               String like= "%" + search.toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("title")), like),
+                        cb.like(cb.lower(root.get("description")), like)));
+            }
+
+            // Filter by User
+            if (userId != null) {
+                predicates.add(
+                        cb.equal(
+                                root.get("user").get("id"),
+                                userId
+                        )
+                );
+            }
+
+            // Filter by Content Type
+            if (contentType != null && !contentType.isBlank()) {
+                predicates.add(
+                        cb.equal(
+                                root.get("contentType"),
+                                contentType
+                        )
+                );
+            }
+
+            // Filter by Created After
+            if (createdAfter != null) {
+                predicates.add(
+                        cb.greaterThanOrEqualTo(
+                                root.get("createdAt"),
+                                createdAfter
+                        )
+                );
+            }
+
+            // Filter by Created Before
+            if (createdBefore != null) {
+                predicates.add(
+                        cb.lessThanOrEqualTo(
+                                root.get("createdAt"),
+                                createdBefore
+                        )
+                );
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+}

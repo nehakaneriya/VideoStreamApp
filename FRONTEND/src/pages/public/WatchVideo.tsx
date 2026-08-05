@@ -23,11 +23,11 @@ export default function WatchVideo() {
       try {
         const [videoRes, allVideos] = await Promise.all([
           apiClient.get(`/videos/${videoId}`),
-          getAllVideos(),
+          getAllVideos("", undefined, 12),
         ]);
         setVideoData(videoRes.data);
         // Current video ko hata ke baaki dikhao
-        setRelated(allVideos.filter((v) => v.videoId !== videoId).slice(0, 8));
+        setRelated(allVideos.content.filter((v) => v.videoId !== videoId).slice(0, 8));
       } catch {
         setError("Failed to load video.");
       } finally {

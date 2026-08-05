@@ -1,5 +1,7 @@
 package com.neha.VideoStreamApp.controllers;
 
+
+import com.neha.VideoStreamApp.dtos.response.ScrollResponse;
 import com.neha.VideoStreamApp.entities.User;
 import com.neha.VideoStreamApp.entities.Video;
 import com.neha.VideoStreamApp.dtos.response.VideoDto;
@@ -12,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -27,7 +31,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -38,6 +44,7 @@ public class VideoController {
 
     private final VideoService videoService;
     private final UserRepository userRepository;
+
 
     //1. Upload Video API
     @PostMapping
@@ -84,8 +91,31 @@ public class VideoController {
 
     //2. Get All Videos
     @GetMapping
-    public ResponseEntity<List<VideoDto>> getAll() {
-        return ResponseEntity.ok(videoService.getAll());
+    public ResponseEntity<ScrollResponse<VideoDto>> getAll(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) UUID userId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant createdAfter,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant createdBefore,
+            @RequestParam(required = false) String contentType,
+            @RequestParam(required = false) String scrollId,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDirection
+    ){
+        ScrollResponse<VideoDto> response = videoService.getAll(
+
+                search,
+                userId,
+                createdAfter,
+                createdBefore,
+                contentType,
+                scrollId,
+                pageSize,
+                sortBy,
+                Sort.Direction.fromString(sortDirection)
+
+        );
+        return ResponseEntity.ok(response);
     }
 
     //3. Get a Single Video

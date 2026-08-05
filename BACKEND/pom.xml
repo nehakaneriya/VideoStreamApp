@@ -74,6 +74,23 @@
 			<version>3.2.4</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>redis.clients</groupId>
+			<artifactId>jedis</artifactId>
+		</dependency>
+
+
+
 		<!-- Swagger / OpenAPI UI dependency for API documentation and testing -->
 		<dependency>
 			<groupId>org.springdoc</groupId>

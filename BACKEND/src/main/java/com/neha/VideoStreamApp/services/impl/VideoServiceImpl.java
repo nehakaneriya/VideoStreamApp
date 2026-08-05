@@ -1,11 +1,24 @@
 package com.neha.VideoStreamApp.services.impl;
 
+import com.neha.VideoStreamApp.dtos.response.ScrollResponse;
 import com.neha.VideoStreamApp.entities.Video;
+import com.neha.VideoStreamApp.exception.BadRequestException;
+import com.neha.VideoStreamApp.exception.ResourceNotFoundException;
+import com.neha.VideoStreamApp.exception.VideoProcessingException;
+import com.neha.VideoStreamApp.helper.ScrollPositionCodec;
 import com.neha.VideoStreamApp.repositories.CommentRepository;
 import com.neha.VideoStreamApp.repositories.VideoRepository;
 import com.neha.VideoStreamApp.services.VideoService;
+import com.neha.VideoStreamApp.specifications.VideoSpecification;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.ScrollPosition;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Window;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -20,28 +33,29 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
 import com.neha.VideoStreamApp.dtos.response.VideoDto;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class VideoServiceImpl implements VideoService {
 
     @Value("${files.video}")
-    String DIR;
+    private String DIR;
 
     @Value("${file.video.hls}")
-    String HLS_DIR;
+    private String HLS_DIR;
 
     private  final VideoRepository videoRepository;
     private final CommentRepository commentRepository;
-
-    public VideoServiceImpl(VideoRepository videoRepository, CommentRepository commentRepository) {
-        this.videoRepository = videoRepository;
-        this.commentRepository = commentRepository;
-    }
+    private final ModelMapper modelMapper;
+    private final VideoCacheService videoCacheService;
 
     // ================= ABR TARGET RESOLUTIONS =================
     // label, height, video-bitrate, maxrate, bufsize, audio-bitrate
@@ -60,7 +74,7 @@ public class VideoServiceImpl implements VideoService {
             Files.createDirectories(Paths.get(DIR));
             Files.createDirectories(Paths.get(HLS_DIR));
         } catch (IOException e) {
-            throw new RuntimeException("Could not create video directories", e);
+            throw new VideoProcessingException("Could not create video directories", e);
         }
     }
 
@@ -69,15 +83,16 @@ public class VideoServiceImpl implements VideoService {
 
         // 1. Empty file check
         if (file.isEmpty()) {
-            throw new RuntimeException("Uploaded file is empty");
+            throw new BadRequestException("Uploaded file is empty");
         }
 
         try {
             // 2. Clean original filename
             String raw = file.getOriginalFilename();
             if (raw == null || raw.isBlank()) {
-                throw new RuntimeException("Invalid file name");
+                throw new BadRequestException("Invalid file name");
             }
+
             String originalFilename = StringUtils.cleanPath(raw);
 
             // 3. Generate unique filename (overwrite problem solved)
@@ -104,7 +119,7 @@ public class VideoServiceImpl implements VideoService {
             return mapToDto(savedVideo);
 
         } catch (IOException e) {
-            throw new RuntimeException("Video upload failed", e);
+            throw new VideoProcessingException("Video upload failed", e);
         }
     }
 
@@ -112,7 +127,7 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public VideoDto get(String videoId) {
 
-        Video video = videoRepository.findById(videoId).orElseThrow(() -> new RuntimeException("Video not found"));
+        Video video = videoRepository.findById(videoId).orElseThrow(() -> new ResourceNotFoundException("Video not found"));
         return mapToDto(video);
     }
 
@@ -122,14 +137,106 @@ public class VideoServiceImpl implements VideoService {
     }
 
     @Override
-    public List<VideoDto> getAll() {
-        return videoRepository.findAll().stream().map(this::mapToDto).collect(Collectors.toList());
+    public ScrollResponse<VideoDto> getAll(String search,
+                                           UUID userId,
+                                           Instant createdAfter,
+                                           Instant createdBefore,
+                                           String contentType,
+
+                                           String scrollId,
+                                           int pageSize,
+                                           String sortBy,
+                                           Sort.Direction sortDirection) {
+
+        log.debug("Checking cache for search={} userId={} createdAfter={} createdBefore={} contentType={} scrollId={} pageSize={} sortBy={} sortDirection={}",search,userId,createdAfter,createdBefore,contentType,scrollId,pageSize,sortBy,sortDirection);
+        ScrollResponse<VideoDto> cachedScrollResponse = videoCacheService.getCachedScrollResponse(search, userId, createdAfter, createdBefore, contentType, scrollId, pageSize, sortBy, sortDirection);
+
+        if (cachedScrollResponse != null) {
+            log.debug("Cache hit for search={} userId={} createdAfter={} createdBefore={} contentType={} scrollId={} pageSize={} sortBy={} sortDirection={}",search,userId,createdAfter,createdBefore,contentType,scrollId,pageSize,sortBy,sortDirection);
+            return cachedScrollResponse;
+        }
+
+        log.debug("Cache miss,querying database");
+
+        ScrollPosition scrollPosition = ScrollPositionCodec.decode(scrollId);
+
+        Specification<Video> specification = VideoSpecification.build(
+                search,
+                userId,
+                createdAfter,
+                createdBefore,
+                contentType
+        );
+
+        Sort.Direction direction=(sortDirection == null || sortDirection == Sort.Direction.ASC)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+
+        String validatedSortBy = validateAndMapSortField(sortBy);
+
+        Sort sort;
+        if (validatedSortBy.equals("createdAt")) {
+            sort = Sort.by(direction, validatedSortBy);
+        } else {
+            // For non-unique fields, add a secondary sort by createdAt to ensure consistent ordering
+            sort = Sort.by(direction, validatedSortBy).and(Sort.by(direction,"createdAt"));
+        }
+
+        // Statement is for actual database call
+        Window<Video> window = videoRepository.findBy(
+                specification,
+                query -> query.limit(pageSize)
+                        .sortBy(sort)
+                        .scroll(scrollPosition));
+
+
+        List<VideoDto> videos = window.getContent()
+                .stream()
+                .map(video -> modelMapper.map(video, VideoDto.class))
+                .toList();
+
+        String nextScrollId = null;
+        if (!window.isEmpty() && window.hasNext()) {
+            ScrollPosition nextPosition = window.positionAt(window.size() - 1);
+            nextScrollId = ScrollPositionCodec.encode(nextPosition);
+        }
+
+
+        ScrollResponse<VideoDto> responseToReturn = ScrollResponse.<VideoDto>builder()
+                .content(videos)
+                .scrollId(nextScrollId)
+                .hasNext(window.hasNext())
+                .pageSize(pageSize)
+                .build();
+        log.debug("Caching ScrollResponse for Future requests");
+        videoCacheService.cacheScrollResponse(responseToReturn, search, userId, createdAfter, createdBefore, contentType, scrollId, pageSize, sortBy, sortDirection);
+        return responseToReturn;
+    }
+
+    // Validate and map sort field to prevent SQL injection and ensure valid fields
+    // Validate and map sort field
+    private String validateAndMapSortField(String sortBy) {
+
+        if (sortBy == null || sortBy.isBlank()) {
+            return "createdAt";
+        }
+        return switch (sortBy.toLowerCase()) {
+
+            case "videoid", "id" -> "videoId";
+            case "title", "name" -> "title";
+            case "description", "desc" -> "description";
+            case "contenttype", "type", "format" -> "contentType";
+            case "filepath", "path" -> "filePath";
+            case "created", "createdat", "createat" -> "createdAt";
+            case "updated", "updatedat", "updateat" -> "updatedAt";
+            default -> "createdAt";
+        };
     }
 
     // ================= ABR VIDEO PROCESSING (multi-resolution) =================
     @Override
     public String processVideo(String videoId) {
-        Video video = videoRepository.findById(videoId).orElseThrow(() -> new RuntimeException("Video not found"));
+        Video video = videoRepository.findById(videoId).orElseThrow(() -> new ResourceNotFoundException("Video not found"));
         Path videoPath = Paths.get(video.getFilePath());
 
         try {
@@ -164,7 +271,7 @@ public class VideoServiceImpl implements VideoService {
             }
 
             if (generated.isEmpty()) {
-                throw new RuntimeException("Video Processing Fail !! No resolution could be generated");
+                throw new VideoProcessingException("Video Processing Fail !! No resolution could be generated");
             }
 
             // 4. Master playlist generate karo — jo sab available variants ko list kare
@@ -173,7 +280,7 @@ public class VideoServiceImpl implements VideoService {
             return videoId;
 
         } catch (IOException ex) {
-            throw new RuntimeException("Video Processing fail !!", ex);
+            throw new VideoProcessingException("Video Processing fail !!", ex);
         }
     }
 
@@ -198,7 +305,7 @@ public class VideoServiceImpl implements VideoService {
 
             int exit = process.waitFor();
             if (exit != 0 || output == null || output.isBlank()) {
-                throw new RuntimeException("Could not detect video resolution (ffprobe failed)");
+                throw new VideoProcessingException("Could not detect video resolution (ffprobe failed)");
             }
 
             // csv output format: width,height
@@ -208,10 +315,10 @@ public class VideoServiceImpl implements VideoService {
             return new int[]{width, height};
 
         } catch (IOException e) {
-            throw new RuntimeException("ffprobe execution failed", e);
+            throw new VideoProcessingException("ffprobe execution failed", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("ffprobe interrupted", e);
+            throw new VideoProcessingException("ffprobe interrupted", e);
         }
     }
 
@@ -239,10 +346,10 @@ public class VideoServiceImpl implements VideoService {
             return exit == 0;
 
         } catch (IOException e) {
-            throw new RuntimeException("Video Processing fail for resolution: " + res.label(), e);
+            throw new VideoProcessingException("Video Processing fail for resolution: " + res.label(), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Video processing interrupted for resolution: " + res.label(), e);
+            throw new VideoProcessingException("Video processing interrupted for resolution: " + res.label(), e);
         }
     }
 
@@ -293,14 +400,9 @@ public class VideoServiceImpl implements VideoService {
 
         //DB se video lao
         Video video = videoRepository.findById(videoId)
-                .orElseThrow(() -> new RuntimeException("Video not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Video not found"));
 
-        //Video pe jo comments hain, unhe pehle delete karo
-        //(foreign key constraint ki wajah se video delete nahi hoga jab tak comments hain)
-        //Pehle REPLIES delete karo (child rows) — warna self-referencing
-        //parent_comment_id constraint fail ho sakta hai
         commentRepository.deleteByVideo_VideoIdAndParentCommentIsNotNull(videoId);
-        //Phir baaki (top-level) comments delete karo
         commentRepository.deleteByVideo_VideoId(videoId);
 
         //Original video delete
@@ -308,7 +410,7 @@ public class VideoServiceImpl implements VideoService {
         if (videoFile.exists()) {
             boolean deleted = videoFile.delete();
             if (!deleted) {
-                throw new RuntimeException("Failed to delete original video file");
+                throw new VideoProcessingException("Failed to delete original video file");
             }
         }
 
@@ -322,6 +424,16 @@ public class VideoServiceImpl implements VideoService {
         videoRepository.delete(video);
     }
 
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VideoDto> getVideosByUserEmail(String email) {
+        List<Video> videos = videoRepository.findByUserEmail(email);
+        return videos.stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
     private void deleteDirectory(File dir) {
         File[] files = dir.listFiles();
         if (files != null) {
@@ -330,13 +442,13 @@ public class VideoServiceImpl implements VideoService {
                     deleteDirectory(file);
                 } else {
                     if (!file.delete()) {
-                        throw new RuntimeException("Failed to delete file: " + file.getAbsolutePath());
+                        throw new VideoProcessingException("Failed to delete file: " + file.getAbsolutePath());
                     }
                 }
             }
         }
         if (!dir.delete()) {
-            throw new RuntimeException("Failed to delete directory: " + dir.getAbsolutePath());
+            throw new VideoProcessingException("Failed to delete directory: " + dir.getAbsolutePath());
         }
     }
 

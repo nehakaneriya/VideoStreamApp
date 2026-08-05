@@ -66,6 +66,19 @@ spring:
       cookie-same-site: lax
       cookie-domain: localhost
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 5000ms
+      jedis:
+        pool:
+          # Redis connection pool settings
+          max-active: 10
+          max-idle: 5
+          min-idle: 1
+          max-wait: 2000ms
+
 # ── Swagger / OpenAPI — DEV mein ON ───────────────────────────
 springdoc:
   api-docs:
@@ -97,3 +110,4 @@ logging:
     com.neha.VideoStreamApp: INFO
     org.springframework.security: WARN
     org.springframework.web: WARN
+
