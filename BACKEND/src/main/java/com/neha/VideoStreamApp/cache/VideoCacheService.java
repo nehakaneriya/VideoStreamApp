@@ -1,10 +1,10 @@
-package com.neha.VideoStreamApp.services.impl;
+package com.neha.VideoStreamApp.cache;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.neha.VideoStreamApp.dtos.response.ScrollResponse;
 import com.neha.VideoStreamApp.dtos.response.VideoDto;
-import com.neha.VideoStreamApp.redis.KeyGenerator;
+import com.neha.VideoStreamApp.redis.VideoKeyGenerator;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.springframework.data.domain.Sort;
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 public class VideoCacheService {
 
     private final RedisTemplate<String, Object> redisTemplate;
-    private final KeyGenerator keyGenerator;
+    private final VideoKeyGenerator keyGenerator;
     private final ObjectMapper objectMapper;
 
     // Cache TTL in minutes configuration
@@ -55,15 +55,15 @@ public class VideoCacheService {
         try {
             Object cached = redisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
-                logger.info("Cache hit for key: {}", cacheKey);
+                logger.info("[VIDEO-CACHE] CACHE HIT. key={}", cacheKey);
                 return objectMapper.convertValue(cached, new TypeReference<ScrollResponse<VideoDto>>() {});
             } else {
-                logger.info("Cache miss for key: {}", cacheKey);
+                logger.info("[VIDEO-CACHE] CACHE MISS. key={}", cacheKey);
                 return null;
             }
         }
         catch (Exception e) {
-            logger.error("Error retrieving cached scroll response with key: {}. Error: {}", cacheKey, e.getMessage());
+            logger.error("[VIDEO-CACHE][ERR-VC-001] Error retrieving cached scroll response. key={} Error: {}", cacheKey, e.getMessage(), e);
             return null;
         }
     }
@@ -99,9 +99,9 @@ public class VideoCacheService {
                     CACHE_TTL_MINUTES,
                     TimeUnit.MINUTES);
 
-            logger.info("Cached scroll response with key: {}", cacheKey);
+            logger.info("[VIDEO-CACHE] Scroll response cached. key={} ttlMinutes={}", cacheKey, CACHE_TTL_MINUTES);
         } catch (Exception e) {
-            logger.error("Error caching scroll response with key: {}. Error: {}", cacheKey, e.getMessage());
+            logger.error("[VIDEO-CACHE][ERR-VC-002] Error caching scroll response. key={} Error: {}", cacheKey, e.getMessage(), e);
         }
     }
 
@@ -111,13 +111,13 @@ public class VideoCacheService {
             Set<String> keys = redisTemplate.keys(pattern);
             if (keys!=null && !keys.isEmpty()) {
                 Long delete=redisTemplate.delete(keys);
-                logger.info("Evicting scroll cache with pattern: {}. Keys found: {}", pattern, keys.size());
+                logger.info("[VIDEO-CACHE] Scroll cache evicted. pattern={} keysDeleted={}", pattern, keys.size());
             } else {
-                logger.info("No keys found for eviction with pattern: {}", pattern);
+                logger.info("[VIDEO-CACHE] No scroll cache keys found for eviction. pattern={}", pattern);
             }
         }
         catch (Exception e) {
-            logger.error("Error evicting scroll cache with pattern: {}. Error: {}", keyGenerator.generateScrollCachePattern(), e.getMessage());
+            logger.error("[VIDEO-CACHE][ERR-VC-003] Error evicting scroll cache. pattern={} Error: {}", keyGenerator.generateScrollCachePattern(), e.getMessage(), e);
         }
     }
 }

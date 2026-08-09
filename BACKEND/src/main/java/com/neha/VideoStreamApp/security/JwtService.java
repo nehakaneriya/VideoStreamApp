@@ -119,4 +119,19 @@ public class JwtService {
         Claims c=parse(token).getPayload();
         return (String) c.get("email");
     }
+
+    // ================= GET EXPIRATION FOR REDIS BLACKLIST =================
+    public Date getExpirationDate(String token) {
+        return parse(token).getPayload().getExpiration();
+    }
+
+    // ================= VALIDATE TOKEN =================
+    public boolean validateToken(String token) {
+        try {
+            parse(token);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
 }

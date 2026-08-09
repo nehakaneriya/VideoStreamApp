@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import videojs from "video.js";
 import "video.js/dist/video-js.css";
-import "videojs-contrib-quality-levels";
 import { Settings } from "lucide-react";
+
+// NOTE: videojs-contrib-quality-levels NOT used — video.js 8 ke VHS engine mein
+// qualityLevels plugin built-in hai. Usse import/register karne se duplicate
+// plugin warning aati thi aur playback impact ho sakta tha.
 
 interface VideoPlayerProps {
   src: string;
@@ -29,7 +32,7 @@ interface QualityLevelList {
 // Player ka wo extra method jo videojs-contrib-quality-levels plugin add karta hai
 // (@types/video.js mein declared nahi hai, isliye local type)
 type PlayerWithQualityLevels = ReturnType<typeof videojs> & {
-  qualityLevels: () => QualityLevelList;
+  qualityLevels?: () => QualityLevelList;
 };
 
 export default function VideoPlayer({ src }: VideoPlayerProps) {
@@ -70,8 +73,9 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
       playerRef.current = player;
 
       player.ready(() => {
-        // videojs-contrib-quality-levels khud "qualityLevels" method player pe register kar deta hai
-        const qualityLevels = (player as PlayerWithQualityLevels).qualityLevels();
+        // video.js 8 + VHS built-in "qualityLevels" method use karta hai
+        const qualityLevels = (player as PlayerWithQualityLevels).qualityLevels?.();
+        if (!qualityLevels) return;
         qualityLevelsRef.current = qualityLevels;
 
         // Har baar jab HLS master.m3u8 se koi naya resolution-variant detect ho,

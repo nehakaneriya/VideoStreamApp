@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-} from "react";
+import {useEffect,useState,useRef,useCallback} from "react";
 import { useSearchParams } from "react-router-dom";
 import VideoCard from "../../components/Video/VideoCard";
 import type { Video } from "../../models/Video";
@@ -12,7 +7,6 @@ import { getAllVideos } from "../../service/VideoService";
 export default function Home() {
 
   const [searchParams] = useSearchParams();
-
   const search = searchParams.get("search") || "";
 
   const [videos, setVideos] = useState<Video[]>([]);
@@ -22,228 +16,140 @@ export default function Home() {
   const [scrollId, setScrollId] = useState<string | undefined>();
   const [hasNext, setHasNext] = useState(true);
 
+
+  // Synchronous State Tracking Refs (Fixes Stale Closure Issues)
+  const loadingRef = useRef(loading);
+  loadingRef.current = loading;
+
+  const hasNextRef = useRef(hasNext);
+  hasNextRef.current = hasNext;
+
+  const scrollIdRef = useRef(scrollId);
+  scrollIdRef.current = scrollId;
+
   const observer = useRef<IntersectionObserver | null>(null);
 
   // First Page
-  const fetchFirstPage = async () => {
+  const fetchFirstPage = useCallback(async () => {
 
     try {
-
       setLoading(true);
-
       const response = await getAllVideos(
         search,
         undefined,
         12
       );
 
-      setVideos(response.content);
-
-      setScrollId(response.scrollId ?? undefined);
-
-      setHasNext(response.hasNext);
-
+      // Safe Fallback: content defined nahi hone par empty array set karein
+      const content = response?.content || [];
+      setVideos(content);
+      setScrollId(response?.scrollId ?? undefined);
+      setHasNext(response?.hasNext ?? false);
       setError("");
-
     } catch (err) {
 
       console.error(err);
-
       setError("Unable to fetch videos.");
-
+      setVideos([]); // Guard state against undefined
     } finally {
-
       setLoading(false);
-
     }
+  }, [search]);
 
-  };
-
-  // Next Page
-  const loadMore = async () => {
-
-    if (loading) return;
-
-    if (!hasNext) return;
-
+  // Pagination Loader
+  const loadMore = useCallback(async () => {
+    if (loadingRef.current || !hasNextRef.current) return;
     try {
 
       setLoading(true);
-
       const response = await getAllVideos(
         search,
-        scrollId,
+        scrollIdRef.current,
         12
       );
 
-      setVideos(prev => [...prev, ...response.content]);
-
-      setScrollId(response.scrollId ?? undefined);
-
-      setHasNext(response.hasNext);
-
+      const newContent = response?.content || [];
+      setVideos(prev => [...prev, ...newContent]);
+      setScrollId(response?.scrollId ?? undefined);
+      setHasNext(response?.hasNext ?? false);
     } catch (err) {
-
       console.error(err);
-
     } finally {
-
       setLoading(false);
-
     }
-
-  };
-
+  }, [search]);
+// Reset State on Search Query Change
   useEffect(() => {
-
     setVideos([]);
-
     setScrollId(undefined);
-
     setHasNext(true);
-
     fetchFirstPage();
 
-  }, [search]);
+    return () => {
+      if (observer.current) observer.current.disconnect();
+    };
 
-  // Infinite Scroll
-  const lastVideoRef = useCallback(
+  }, [search, fetchFirstPage]);
 
-    (node: HTMLDivElement | null) => {
+ // Observer Ref Callback
+  const lastVideoRef = useCallback((node: HTMLDivElement | null) => {
+    if (loadingRef.current) return;
 
-      if (loading) return;
+    if (observer.current) observer.current.disconnect();
 
-      if (observer.current) {
-
-        observer.current.disconnect();
-
+    observer.current = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasNextRef.current && !loadingRef.current) {
+        loadMore();
       }
+    });
 
-      observer.current = new IntersectionObserver(entries => {
+    if (node) observer.current.observe(node);
+  }, [loadMore]);
 
-        if (
-          entries[0].isIntersecting &&
-          hasNext
-        ) {
-
-          loadMore();
-
-        }
-
-      });
-
-      if (node) {
-
-        observer.current.observe(node);
-
-      }
-
-    },
-
-    [loading, hasNext, scrollId]
-
-  );
 
   return (
-
     <div className="p-6 bg-[#0f0f0f] min-h-screen text-white">
-
       <h2 className="text-3xl font-bold mb-8 border-l-4 border-red-600 pl-4 uppercase">
-
-        {search
-          ? `Search Results : "${search}"`
-          : "Explore Videos"}
-
+        {search ? `Search Results : "${search}"` : "Explore Videos"}
       </h2>
 
-      {error && (
-
-        <p className="text-center text-red-500">
-
-          {error}
-
-        </p>
-
-      )}
+      {error && <p className="text-center text-red-500">{error}</p>}
 
       {videos.length === 0 && !loading && (
-
-        <p className="text-center text-gray-400">
-
-          No videos found.
-
-        </p>
-
+        <p className="text-center text-gray-400">No videos found.</p>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-
         {videos.map((video, index) => {
-
-          if (index === videos.length - 1) {
-
-            return (
-
-              <div
-                key={video.videoId}
-                ref={lastVideoRef}
-              >
-
-                <VideoCard
-                  videoId={video.videoId}
-                  title={video.title}
-                  description={video.description}
-                  userName={video.userName}
-                  contentType={video.contentType}
-                  createdAt={video.createdAt}
-                />
-
-              </div>
-
-            );
-
-          }
+          const isLastElement = index === videos.length - 1;
 
           return (
-
-            <VideoCard
+            <div
               key={video.videoId}
-              videoId={video.videoId}
-              title={video.title}
-              description={video.description}
-              userName={video.userName}
-              contentType={video.contentType}
-              createdAt={video.createdAt}
-            />
-
+              ref={isLastElement ? lastVideoRef : undefined}
+            >
+              <VideoCard
+                videoId={video.videoId}
+                title={video.title}
+                description={video.description}
+                userName={video.userName}
+                contentType={video.contentType}
+                createdAt={video.createdAt}
+              />
+            </div>
           );
-
         })}
-
       </div>
 
       {loading && videos.length > 0 && (
-
         <p className="text-center mt-8 text-gray-400 animate-pulse">
-
           Loading more videos...
-
         </p>
-
       )}
 
       {!hasNext && videos.length > 0 && (
-
-        <p className="text-center mt-8 text-gray-500">
-
-          No more videos.
-
-        </p>
-
+        <p className="text-center mt-8 text-gray-500">No more videos.</p>
       )}
-
     </div>
-
   );
-
 }

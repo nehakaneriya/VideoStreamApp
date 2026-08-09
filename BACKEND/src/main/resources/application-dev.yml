@@ -71,6 +71,7 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       timeout: 5000ms
+      client-type: JEDIS
       jedis:
         pool:
           # Redis connection pool settings

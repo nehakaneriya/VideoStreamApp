@@ -1,14 +1,13 @@
 package com.neha.VideoStreamApp.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.Instant;
 import java.util.*;
 
 @Getter
@@ -18,6 +17,7 @@ import java.util.*;
 @Builder
 @Entity
 @Table(name = "users")
+@JsonIgnoreProperties(ignoreUnknown = true) // <--- Redis JSON deserialization safe karta hai
 public class User extends BaseEntity implements UserDetails {
 
     @Id
@@ -50,11 +50,13 @@ public class User extends BaseEntity implements UserDetails {
     private Set<Role> roles = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonIgnore // <--- Redis Caching ke liye Videos list ko ignore karna zaroori hai (Loop / Heavy payload avoid karne ke liye)
     private List<Video> videos = new ArrayList<>();
 
     @Override
+    @JsonIgnore // <--- Jackson getAuthorities ko serialize na kare (roles se already handle hota hai)
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (roles == null) return List.of();
         return roles.stream()
                 .map(role -> new SimpleGrantedAuthority(role.getName()))
                 .toList();

@@ -1,5 +1,6 @@
 package com.neha.VideoStreamApp.controllers;
 
+import com.neha.VideoStreamApp.cache.JwtBlacklistService;
 import com.neha.VideoStreamApp.dtos.request.LoginRequest;
 import com.neha.VideoStreamApp.dtos.request.RefreshTokenRequest;
 import com.neha.VideoStreamApp.dtos.response.TokenResponse;
@@ -45,6 +46,7 @@ public class AuthController {
     private final ModelMapper mapper;
     private final RefreshTokenRepository refreshTokenRepository;
     private final CookieService cookieService;
+    private final JwtBlacklistService jwtBlacklistService;
 
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
@@ -155,6 +157,9 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+        // Access token ko Redis blacklist karo — logout ke baad wahi token invalid ho
+        blacklistAccessToken(request);
+
         readRefreshTokenFromRequest(null, request).ifPresent(token -> {
             try {
                 if (jwtService.isRefreshToken(token)) {
@@ -325,6 +330,9 @@ public class AuthController {
 
     @PostMapping("/admin/logout")
     public ResponseEntity<Void> adminLogout(HttpServletRequest request, HttpServletResponse response) {
+        // Admin access token bhi blacklist karo
+        blacklistAccessToken(request);
+
         readAdminRefreshTokenFromRequest(request).ifPresent(token -> {
             try {
                 if (jwtService.isRefreshToken(token)) {
@@ -352,5 +360,28 @@ public class AuthController {
                     .findFirst();
         }
         return Optional.empty();
+    }
+
+    // Authorization header se access token nikal kar Redis blacklist me daalo
+    // TTL = token ki remaining validity — jab tak token expire hoga tab tak blocked rahega
+    private void blacklistAccessToken(HttpServletRequest request) {
+        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authHeader == null || !authHeader.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return;
+        }
+        String candidate = authHeader.substring(7).trim();
+        if (candidate.isEmpty()) {
+            return;
+        }
+        try {
+            if (jwtService.isAccessToken(candidate)) {
+                long remainingMillis = jwtService.parse(candidate).getPayload().getExpiration().getTime() - System.currentTimeMillis();
+                if (remainingMillis > 0) {
+                    jwtBlacklistService.blacklistToken(candidate, remainingMillis);
+                }
+            }
+        } catch (Exception ignored) {
+            // Token invalid hai to blacklist karne ki zaroorat nahi
+        }
     }
 }

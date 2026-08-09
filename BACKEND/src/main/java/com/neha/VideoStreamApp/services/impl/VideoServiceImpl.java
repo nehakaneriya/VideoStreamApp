@@ -1,5 +1,6 @@
 package com.neha.VideoStreamApp.services.impl;
 
+import com.neha.VideoStreamApp.cache.VideoCacheService;
 import com.neha.VideoStreamApp.dtos.response.ScrollResponse;
 import com.neha.VideoStreamApp.entities.Video;
 import com.neha.VideoStreamApp.exception.BadRequestException;
@@ -115,7 +116,10 @@ public class VideoServiceImpl implements VideoService {
             // 7. Start video processing (HLS conversion)
             processVideo(savedVideo.getVideoId());
 
-            // 8. Return saved video info
+            // 8. Naya video add hua — cached video list purani ho gayi, clear karo
+            videoCacheService.evictScrollCache();
+
+            // 9. Return saved video info
             return mapToDto(savedVideo);
 
         } catch (IOException e) {
@@ -422,6 +426,9 @@ public class VideoServiceImpl implements VideoService {
 
         //DB record delete
         videoRepository.delete(video);
+
+        // Video delete hua — cached list clear karo
+        videoCacheService.evictScrollCache();
     }
 
 

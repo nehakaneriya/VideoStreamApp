@@ -1,5 +1,9 @@
 package com.neha.VideoStreamApp.security;
 
+
+import com.neha.VideoStreamApp.cache.JwtBlacklistService;
+import com.neha.VideoStreamApp.cache.UserCacheService;
+import com.neha.VideoStreamApp.entities.User;
 import com.neha.VideoStreamApp.helper.UserHelper;
 import com.neha.VideoStreamApp.repositories.UserRepository;
 import io.jsonwebtoken.*;
@@ -30,6 +34,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final JwtBlacklistService jwtBlacklistService;
+    private final UserCacheService userCacheService;
     private final Logger logger= LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     @Override
@@ -42,6 +48,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = header.substring(7);
 
             try{
+
+                // 1. Check Redis Blacklist (Logout status check)
+                if (jwtBlacklistService.isTokenBlacklisted(token)) {
+                    logger.warn("[JWT-AUTH][BLACKLISTED-TOKEN] Blacklisted Token Attempted: {}", token);
+                    request.setAttribute("error", "Token is revoked or user logged out");
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 // Parse once, check type from same result — avoid double parse
                 Jws<Claims> parse = jwtService.parse(token);
                 Claims payload = parse.getPayload();
@@ -55,20 +70,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String userId = payload.getSubject();
                 UUID userUuid = UserHelper.parseUUID(userId);
 
-                // User DB mein dhundho
-                var userOpt = userRepository.findById(userUuid);
+                // 3. Fetch User with Redis Caching Layer (DB Query bachti hai)
+                User user = userCacheService.getCachedUser(userId);
 
-                if (userOpt.isEmpty()) {
-                    // User delete ho gaya — token invalid treat karo
-                    request.setAttribute("error", "User no longer exists");
-                    filterChain.doFilter(request, response);
-                    return;
+                if (user == null) {
+                    var userOpt = userRepository.findById(userUuid);
+
+                    if (userOpt.isEmpty()) {
+                        request.setAttribute("error", "User no longer exists");
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
+                    user = userOpt.get();
+                    userCacheService.cacheUser(userId, user); // Cache in Redis
+                    logger.info("[JWT-AUTH] User loaded from DB & cached. userId={}", userId);
+                } else {
+                    logger.info("[JWT-AUTH] User loaded from Redis cache. userId={}", userId);
                 }
 
-                var user = userOpt.get();
-
                 if (!user.isEnable()) {
-                    // User disabled hai
                     request.setAttribute("error", "User account is disabled");
                     filterChain.doFilter(request, response);
                     return;
@@ -85,14 +106,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (SecurityContextHolder.getContext().getAuthentication() == null)
                     SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (ExpiredJwtException e) {
-                logger.error("JWT Token Expired: {}", e.getMessage());
+                logger.error("[JWT-AUTH][ERR-JWT-AUTH-001] JWT Token Expired: {}", e.getMessage());
                 request.setAttribute("error", "Token Expired");
             } catch (MalformedJwtException e){
-                logger.error("Invalid JWT Token: {}", e.getMessage());
+                logger.error("[JWT-AUTH][ERR-JWT-AUTH-002] Invalid JWT Token: {}", e.getMessage());
                 request.setAttribute("error", "Invalid Token Format");
 
             } catch (Exception e){
-                logger.error("Authentication Error: {}", e.getMessage());
+                logger.error("[JWT-AUTH][ERR-JWT-AUTH-003] Authentication Error: {}", e.getMessage(), e);
                 request.setAttribute("error", "Authentication Failed");
 
 

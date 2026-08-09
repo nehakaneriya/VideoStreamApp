@@ -17,12 +17,14 @@ export default function Navbar() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const [search, setSearch] = useState("");
+  const [lastSearch, setLastSearch] = useState("");
 
-  // Keep search box synced with URL
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    setSearch(params.get("search") || "");
-  }, [location.search]);
+  // Keep search box synced with URL (adjust state during render — React recommended)
+  const urlSearch = new URLSearchParams(location.search).get("search") || "";
+  if (urlSearch !== lastSearch) {
+    setLastSearch(urlSearch);
+    setSearch(urlSearch);
+  }
 
   // Verify session
   useEffect(() => {

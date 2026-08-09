@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Slf4j
 @Component
-public class KeyGenerator {
+public class VideoKeyGenerator {
 
     private static final String VIDEO_KEY_PREFIX = "video:scroll";
 
