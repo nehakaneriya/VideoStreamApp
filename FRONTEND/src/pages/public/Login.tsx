@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom"
 import { useState } from "react"
-import { Mail, Lock,ArrowRight } from "lucide-react" // Modern icons
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react" // Modern icons
 import type LoginData from "@/models/LoginData"
 import { toast } from "react-toastify"
 import { Spinner } from "@/components/ui/spinner"
@@ -16,6 +16,7 @@ export default function Login() {
 
   const [error, setError] = useState<string>("")
   const [loading, setLoading] = useState<boolean>(false)
+  const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate();
   const login = useAuthStore(state => state.login);
 
@@ -52,76 +53,87 @@ export default function Login() {
       setLoading(false);
     }
   }
- 
+
+  const inputBase =
+    "w-full pl-10 pr-4 py-3 text-sm bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-red-600/50 focus:border-red-600 outline-none transition-all placeholder:text-gray-700 text-white";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#09090b] text-white px-4">
-      {/* Glow Effect behind the card */}
-      <div className="absolute w-64 h-64 bg-red-600/10 rounded-full blur-[100px] -z-10"></div>
+    <div className="min-h-screen flex items-center justify-center bg-[#09090b] text-white px-4 py-6 relative">
+      {/* Glow Effects */}
+      <div className="absolute top-10 -left-20 w-72 h-72 bg-red-600/15 rounded-full blur-[120px] -z-10"></div>
+      <div className="absolute bottom-10 -right-20 w-72 h-72 bg-red-600/10 rounded-full blur-[120px] -z-10"></div>
 
-      <div className="bg-[#121214] p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md border border-white/5 backdrop-blur-sm">
-        
-        {/* Logo Section */}
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-black tracking-tighter">Stream<span className="text-red-600">Hub</span></h1>
-          <p className="text-gray-500 text-sm mt-1 uppercase tracking-widest font-medium">User Authentication</p>
+      <div className="bg-[#121214] p-5 sm:p-6 rounded-3xl shadow-2xl w-full max-w-md border border-white/10 animate-fade-in-up">
+
+        {/* Header */}
+        <div className="mb-4 text-center">
+          <h1 className="text-2xl font-black tracking-tighter">Stream<span className="text-red-600">Hub</span></h1>
+          <p className="text-gray-500 text-xs mt-0.5 uppercase tracking-widest font-medium">Welcome back</p>
         </div>
 
-        <form className="space-y-5" onSubmit={handleLogin}>
-          {/* Email Field */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-400 flex items-center gap-2 ml-1">
-              <Mail size={14} /> Email Address
-            </label>
+        <form className="space-y-3" onSubmit={handleLogin}>
+
+          {/* Email */}
+          <div>
             <div className="relative">
+              <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
               <input
                 type="email"
                 name="email"
                 required
                 value={loginData.email}
                 onChange={handleInputChange}
-                className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl focus:ring-2 focus:ring-red-600/50 focus:border-red-600 outline-none transition-all placeholder:text-gray-700"
-                placeholder="name@example.com"
+                className={inputBase}
+                placeholder="Email address"
               />
             </div>
           </div>
 
-          {/* Password Field */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center px-1">
-              <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
-                <Lock size={14} /> Password
-              </label>
-              <a href="#" className="text-xs text-red-500 hover:underline">Forgot?</a>
+          {/* Password */}
+          <div>
+            <div className="relative">
+              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                required
+                value={loginData.password}
+                onChange={handleInputChange}
+                className={`${inputBase} pr-10`}
+                placeholder="Password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition cursor-pointer"
+                aria-label="Toggle password visibility"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
-            <input
-              type="password"
-              name="password"
-              required
-              value={loginData.password}
-              onChange={handleInputChange}
-              className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl focus:ring-2 focus:ring-red-600/50 focus:border-red-600 outline-none transition-all placeholder:text-gray-700"
-              placeholder="••••••••"
-            />
+          </div>
+
+          <div className="flex justify-end pt-0.5">
+            <a href="#" className="text-xs text-red-500 hover:underline">Forgot password?</a>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-red-600 hover:bg-red-700 py-4 rounded-2xl text-lg font-bold transition-all shadow-lg shadow-red-600/20 active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-xl text-base font-bold transition-all shadow-lg shadow-red-600/30 active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer group"
           >
             {loading ? <Spinner /> : (
-              <>Login <ArrowRight size={20} /></>
+              <>Login <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" /></>
             )}
           </button>
         </form>
 
-        {error && <p className="text-red-500 text-center text-sm mt-4 font-medium">⚠️ {error}</p>}
+        {error && <p className="text-red-500 text-center text-sm mt-3 font-medium">⚠️ {error}</p>}
 
         {/* Social Login Divider */}
         <Oauth2Buttons />
-        
-        <p className="text-center text-gray-500 mt-8 text-sm">
+
+        <p className="text-center text-gray-500 mt-4 text-sm">
           New here? <Link to="/register" className="text-white font-bold hover:text-red-500 transition-colors">Create an account</Link>
         </p>
       </div>

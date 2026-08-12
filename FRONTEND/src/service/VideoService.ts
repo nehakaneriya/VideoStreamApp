@@ -48,6 +48,15 @@ export const deleteVideo = async (videoId: string) => {
     return response.data;
 };
 
+export const updateVideo = async (
+    videoId: string,
+    data: { title: string; description?: string }
+): Promise<Video> => {
+    // Video title/description update karne ke liye
+    const response = await apiClient.put(`/videos/${videoId}`, data);
+    return response.data;
+};
+
 // HLS Master URL generate karne ka helper
 export const getHlsMasterUrl = (videoId: string) => {
     return `${apiClient.defaults.baseURL}/videos/${videoId}/master.m3u8`;

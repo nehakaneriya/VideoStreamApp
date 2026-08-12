@@ -37,6 +37,9 @@ public interface VideoService {
     //video processing
     String processVideo(String videoId);
 
+    // update video metadata (title/description only)
+    VideoDto update(String videoId, String title, String description);
+
     //delete video (Db+ folder)
     void delete(String videoId);
 

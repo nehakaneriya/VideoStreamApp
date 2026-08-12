@@ -1,6 +1,6 @@
 import { NavLink, Outlet, Navigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { Menu, LayoutDashboard, Users, Video, LogOut, MessageSquare, MessageCircle } from "lucide-react";
+import { Menu, LayoutDashboard, Users, Video, LogOut, MessageSquare, MessageCircle, X } from "lucide-react";
 import useAdminStore from "@/auth/adminStore";
 import { adminRefreshToken } from "@/service/Authservice";
 import LogoutConfirmModal from "@/components/layout/LogoutConfirmModal";
@@ -8,6 +8,7 @@ import LogoutConfirmModal from "@/components/layout/LogoutConfirmModal";
 export default function AdminLayout() {
 
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const adminUser = useAdminStore((state) => state.adminUser);
@@ -60,11 +61,19 @@ export default function AdminLayout() {
   return (
     <div className="flex min-h-screen bg-[#0f0f0f] text-white">
 
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 bg-black/60 z-30 lg:hidden"
+        />
+      )}
+
       {/* Sidebar */}
       <aside
-        className={`bg-[#181818] border-r border-gray-800 transition-all duration-300 ${
-          collapsed ? "w-20" : "w-64"
-        }`}
+        className={`fixed lg:sticky top-0 left-0 h-screen z-40 bg-[#181818] border-r border-gray-800 transition-all duration-300 w-64 ${
+          collapsed ? "lg:w-20" : "lg:w-64"
+        } ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 overflow-y-auto`}
       >
 
         <div className="flex items-center justify-between p-4">
@@ -73,18 +82,28 @@ export default function AdminLayout() {
               <span className="text-red-600">Admin</span>
             </h2>
           )}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="text-gray-300 hover:text-white"
-          >
-            <Menu />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="hidden lg:inline-flex text-gray-300 hover:text-white cursor-pointer"
+            >
+              <Menu />
+            </button>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="lg:hidden text-gray-300 hover:text-white cursor-pointer"
+              aria-label="Close menu"
+            >
+              <X />
+            </button>
+          </div>
         </div>
 
-        <nav className="mt-6 space-y-2 px-2">
+        <nav className="mt-2 space-y-2 px-2">
 
           <NavLink
             to="/admin/dashboard"
+            onClick={() => setMobileOpen(false)}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-2 rounded-lg transition ${
                 isActive ? "bg-red-600" : "hover:bg-gray-800 text-gray-300"
@@ -97,6 +116,7 @@ export default function AdminLayout() {
 
           <NavLink
             to="/admin/users"
+            onClick={() => setMobileOpen(false)}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-2 rounded-lg transition ${
                 isActive ? "bg-red-600" : "hover:bg-gray-800 text-gray-300"
@@ -109,6 +129,7 @@ export default function AdminLayout() {
 
           <NavLink
             to="/admin/videos"
+            onClick={() => setMobileOpen(false)}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-2 rounded-lg transition ${
                 isActive ? "bg-red-600" : "hover:bg-gray-800 text-gray-300"
@@ -121,6 +142,7 @@ export default function AdminLayout() {
 
           <NavLink
             to="/admin/feedbacks"
+            onClick={() => setMobileOpen(false)}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-2 rounded-lg transition ${
                 isActive ? "bg-red-600" : "hover:bg-gray-800 text-gray-300"
@@ -133,6 +155,7 @@ export default function AdminLayout() {
 
           <NavLink
             to="/admin/comments"
+            onClick={() => setMobileOpen(false)}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-2 rounded-lg transition ${
                 isActive ? "bg-red-600" : "hover:bg-gray-800 text-gray-300"
@@ -156,7 +179,15 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 transition-all duration-300">
+      <main className="flex-1 p-4 sm:p-8 transition-all duration-300 min-w-0">
+        {/* Mobile top bar */}
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="lg:hidden mb-4 flex items-center gap-2 px-3 py-2 bg-[#181818] border border-gray-800 rounded-lg text-gray-300 hover:text-white transition cursor-pointer"
+        >
+          <Menu size={18} />
+          <span className="text-sm font-medium">Menu</span>
+        </button>
         <Outlet />
       </main>
 

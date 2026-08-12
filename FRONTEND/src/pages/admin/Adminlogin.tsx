@@ -29,8 +29,8 @@ export default function Adminlogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f0f0f] text-white">
-      <div className="bg-[#181818] p-8 rounded-xl w-87.5 border border-gray-800">
+    <div className="min-h-screen flex items-center justify-center bg-[#0f0f0f] text-white px-4">
+      <div className="bg-[#181818] p-8 rounded-xl w-full max-w-md border border-gray-800">
         <h2 className="text-2xl font-bold mb-6 text-center">
           <span className="text-red-600">Admin</span> Login
         </h2>
@@ -40,20 +40,20 @@ export default function Adminlogin() {
             placeholder="Admin Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-2 rounded bg-[#0f0f0f] border border-gray-700 focus:outline-none"
+            className="w-full p-3 rounded-lg bg-[#0f0f0f] border border-gray-700 focus:outline-none focus:border-red-600 transition-colors"
           />
           <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-2 rounded bg-[#0f0f0f] border border-gray-700 focus:outline-none"
+            className="w-full p-3 rounded-lg bg-[#0f0f0f] border border-gray-700 focus:outline-none focus:border-red-600 transition-colors"
           />
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
             disabled={adminLoading}
-            className="w-full bg-red-600 hover:bg-red-700 p-2 rounded font-semibold disabled:opacity-60"
+            className="w-full bg-red-600 hover:bg-red-700 p-3 rounded-lg font-semibold disabled:opacity-60 cursor-pointer transition"
           >
             {adminLoading ? "Logging in..." : "Login"}
           </button>

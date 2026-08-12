@@ -98,7 +98,7 @@ export default function Users() {
       </h1>
 
       {/* Stats Bar */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-wrap gap-4 mb-6">
         <div className="bg-[#181818] border border-gray-800 rounded-lg px-4 py-2 flex items-center gap-2">
           <User size={16} className="text-red-600" />
           <span className="text-gray-400 text-sm">Total:</span>
@@ -124,8 +124,8 @@ export default function Users() {
       {loading ? (
         <div className="text-center py-20 text-gray-500">Loading users...</div>
       ) : (
-        <div className="bg-[#181818] border border-gray-800 rounded-xl overflow-hidden">
-          <table className="w-full text-left">
+        <div className="bg-[#181818] border border-gray-800 rounded-xl overflow-x-auto">
+          <table className="w-full text-left min-w-[800px]">
             <thead className="bg-[#111] border-b border-gray-800">
               <tr>
                 <th className="p-4 text-gray-400 text-sm">Name</th>

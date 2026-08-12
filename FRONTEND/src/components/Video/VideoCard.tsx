@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Play, Trash2, Calendar } from "lucide-react";
+import { Play, Trash2, Calendar, Pencil } from "lucide-react";
 import { getHlsMasterUrl } from "@/service/VideoService";
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   contentType?: string;
   createdAt?: string;
   onDelete?: (id: string) => void;
+  onEdit?: (id: string) => void;
 }
 
 export default function VideoCard({
@@ -20,6 +21,7 @@ export default function VideoCard({
   contentType,
   createdAt,
   onDelete,
+  onEdit,
 }: Props) {
   const navigate = useNavigate();
 
@@ -91,18 +93,34 @@ export default function VideoCard({
           </div>
         )}
 
-        {/* Delete button */}
-        {onDelete && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(videoId);
-            }}
-            className="mt-3 w-full flex items-center justify-center gap-1.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white text-xs font-medium py-1.5 rounded-lg transition-all duration-200 border border-red-600/20 hover:border-red-600"
-          >
-            <Trash2 size={12} />
-            Delete
-          </button>
+        {/* Edit / Delete buttons */}
+        {(onEdit || onDelete) && (
+          <div className="mt-3 flex gap-2">
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(videoId);
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-gray-700/40 hover:bg-red-600 text-gray-300 hover:text-white text-xs font-medium py-1.5 rounded-lg transition-all duration-200 border border-gray-700 hover:border-red-600"
+              >
+                <Pencil size={12} />
+                Edit
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(videoId);
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white text-xs font-medium py-1.5 rounded-lg transition-all duration-200 border border-red-600/20 hover:border-red-600"
+              >
+                <Trash2 size={12} />
+                Delete
+              </button>
+            )}
+          </div>
         )}
 
       </div>

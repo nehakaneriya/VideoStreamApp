@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import VideoCard from "../../components/Video/VideoCard";
+import EditVideoModal from "../../components/Video/EditVideoModal";
 import type { Video } from "../../models/Video";
 import { deleteVideo, getMyVideos } from "../../service/VideoService";
 import { getCurrentUser } from "@/service/Authservice";
@@ -13,9 +14,22 @@ export default function UserHome() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [user1, setUser1] = useState<UserT | null>(null);
+  const [editVideo, setEditVideo] = useState<Video | null>(null);
 
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+
+  const fetchVideos = useCallback(async () => {
+    try {
+      const data = await getMyVideos();
+      setVideos(data);
+    } catch {
+      console.error("Failed to fetch videos");
+      toast.error("Failed to load videos");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const getUserData = async () => {
@@ -29,21 +43,9 @@ export default function UserHome() {
       }
     };
 
-    const fetchVideos = async () => {
-      try {
-        const data = await getMyVideos();
-        setVideos(data);
-      } catch {
-        console.error("Failed to fetch videos");
-        toast.error("Failed to load videos");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     getUserData();
     fetchVideos();
-  }, [user?.email]);
+  }, [user?.email, fetchVideos]);
 
   // 🔹 Delete Video
   const handleDelete = async (id: string) => {
@@ -65,10 +67,10 @@ export default function UserHome() {
     <div className="p-6 bg-[#0f0f0f] min-h-screen text-white">
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
 
         <div>
-          <h2 className="text-3xl font-bold border-l-4 border-red-600 pl-4 uppercase">
+          <h2 className="text-xl sm:text-3xl font-bold border-l-4 border-red-600 pl-4 uppercase">
             Your Dashboard
           </h2>
 
@@ -81,7 +83,7 @@ export default function UserHome() {
 
         <button
           onClick={() => navigate("/UserHome/upload")}
-          className="bg-red-600 px-6 py-2 rounded-lg hover:bg-red-700 transition cursor-pointer"
+          className="bg-red-600 px-6 py-2 rounded-lg hover:bg-red-700 transition cursor-pointer text-sm sm:text-base"
         >
           + Upload Video
         </button>
@@ -115,10 +117,25 @@ export default function UserHome() {
             contentType={video.contentType}
             createdAt={video.createdAt}
             onDelete={handleDelete}
+            onEdit={(id) => {
+              const v = videos.find((item) => item.videoId === id);
+              if (v) setEditVideo(v);
+            }}
           />
         ))}
 
       </div>
+
+      {/* Edit Video Modal */}
+      {editVideo && (
+        <EditVideoModal
+          videoId={editVideo.videoId}
+          currentTitle={editVideo.title}
+          currentDescription={editVideo.description}
+          onClose={() => setEditVideo(null)}
+          onSaved={fetchVideos}
+        />
+      )}
 
     </div>
   );

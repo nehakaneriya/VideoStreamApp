@@ -48,8 +48,8 @@ export default function AdminFeedback() {
         <div className="p-2">
 
             {/* Header */}
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold">
+            <div className="flex flex-wrap gap-3 items-center justify-between mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold">
                     <span className="text-red-600">User</span> Feedback
                 </h1>
                 {!loading && (

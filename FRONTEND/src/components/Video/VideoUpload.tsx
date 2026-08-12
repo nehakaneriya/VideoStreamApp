@@ -103,11 +103,11 @@ export default function VideoUpload() {
   };
 
   return (
-    <div className="bg-[#181818] p-8 rounded-2xl shadow-2xl border border-gray-800">
+    <div className="bg-[#181818] p-5 sm:p-8 rounded-2xl shadow-2xl border border-gray-800">
       {/* Header Section */}
-      <div className="flex items-center justify-center gap-3 mb-8">
-        <FaPlayCircle className="text-red-600 text-4xl" />
-        <h1 className="text-3xl font-bold text-white uppercase tracking-tighter">
+      <div className="flex items-center justify-center gap-3 mb-8 text-center">
+        <FaPlayCircle className="text-red-600 text-3xl sm:text-4xl" />
+        <h1 className="text-xl sm:text-3xl font-bold text-white uppercase tracking-tighter">
           Upload Your <span className="text-red-600">Video</span>
         </h1>
       </div>

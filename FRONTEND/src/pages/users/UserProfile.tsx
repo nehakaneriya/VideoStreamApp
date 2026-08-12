@@ -67,6 +67,18 @@ export default function UserProfile() {
         toast.error("Password must be at least 6 characters");
         return;
       }
+      if (!/[A-Za-z]/.test(newPassword)) {
+        toast.error("Password must contain at least one letter");
+        return;
+      }
+      if (!/\d/.test(newPassword)) {
+        toast.error("Password must contain at least one number");
+        return;
+      }
+      if (!/[^A-Za-z0-9]/.test(newPassword)) {
+        toast.error("Password must contain at least one special character");
+        return;
+      }
       if (newPassword !== confirmPassword) {
         toast.error("Passwords do not match");
         return;
@@ -118,23 +130,23 @@ export default function UserProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-white flex justify-center px-6 py-16">
+    <div className="min-h-screen bg-[#0f0f0f] text-white flex justify-center px-4 sm:px-6 py-8 sm:py-16">
       <div className="w-full max-w-4xl">
 
         {/* ── Top Card ── */}
-        <div className="bg-[#181818] rounded-2xl p-8 border border-gray-800 shadow-xl">
-          <div className="flex items-center gap-8">
+        <div className="bg-[#181818] rounded-2xl p-6 sm:p-8 border border-gray-800 shadow-xl">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 text-center sm:text-left">
 
             {/* Avatar */}
-            <div className="w-28 h-28 rounded-full bg-red-600 flex items-center justify-center text-4xl font-bold shrink-0 select-none">
+            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-red-600 flex items-center justify-center text-3xl sm:text-4xl font-bold shrink-0 select-none">
               {user?.name?.charAt(0).toUpperCase()}
             </div>
 
             <div className="flex-1 min-w-0">
-              <h2 className="text-3xl font-bold truncate">{user?.name}</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold truncate">{user?.name}</h2>
               <p className="text-gray-400 mt-1 truncate">{user?.email}</p>
 
-              <div className="flex items-center gap-3 mt-4 flex-wrap">
+              <div className="flex items-center gap-3 mt-4 flex-wrap justify-center sm:justify-start">
                 {/* Provider badge */}
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                   isOAuthUser

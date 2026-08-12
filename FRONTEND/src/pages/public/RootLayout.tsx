@@ -17,6 +17,7 @@ export default function RootLayout() {
   // Tab tak koi bhi child route render na ho — warna bina token API calls jaayenge aur 401 aayega
   const needsRestoring = !!(authStatus && !accessToken);
   const [restoring, setRestoring] = useState(needsRestoring);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (hasFetched.current) return;
@@ -50,10 +51,10 @@ export default function RootLayout() {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white">
-      <Navbar />
+      <Navbar onMenuClick={() => setSidebarOpen(true)} />
       <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-6">
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <main className="flex-1 p-4 sm:p-6 min-w-0">
           <Outlet />
         </main>
       </div>

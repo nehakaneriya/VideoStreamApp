@@ -117,7 +117,62 @@
   * {
     @apply border-border outline-ring/50;
     }
+  html {
+    scroll-behavior: smooth;
+    }
   body {
     @apply bg-background text-foreground;
     }
+  ::selection {
+    background-color: rgba(220, 38, 38, 0.35);
+    }
+}
+
+/* Slim, theme-matching scrollbar (same dark/red palette, just nicer) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f3f #0f0f0f;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #0f0f0f;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #3f3f3f;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #dc2626;
+}
+
+/* Subtle entrance animation used across cards/pages */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-fade-in-up {
+    animation: none;
+  }
 }

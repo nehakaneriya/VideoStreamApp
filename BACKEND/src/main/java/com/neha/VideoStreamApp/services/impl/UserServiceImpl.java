@@ -1,5 +1,6 @@
 package com.neha.VideoStreamApp.services.impl;
 
+import com.neha.VideoStreamApp.cache.UserCacheService;
 import com.neha.VideoStreamApp.config.AppConstants;
 import com.neha.VideoStreamApp.dtos.common.UserDto;
 import com.neha.VideoStreamApp.entities.Provider;
@@ -28,6 +29,23 @@ public class UserServiceImpl implements UserService {
    private final ModelMapper modelMapper;
    private final RoleRepository roleRepository;
    private final PasswordEncoder passwordEncoder;
+   private final UserCacheService userCacheService;
+
+    // Password policy — min 6 chars, at least one letter, one number, one special symbol
+    private void validatePassword(String password) {
+        if (password.length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters long");
+        }
+        if (!password.matches(".*[A-Za-z].*")) {
+            throw new IllegalArgumentException("Password must contain at least one letter");
+        }
+        if (!password.matches(".*\\d.*")) {
+            throw new IllegalArgumentException("Password must contain at least one number");
+        }
+        if (!password.matches(".*[^A-Za-z0-9].*")) {
+            throw new IllegalArgumentException("Password must contain at least one special character");
+        }
+    }
 
 
     @Override
@@ -38,6 +56,10 @@ public class UserServiceImpl implements UserService {
         if(userDto.getPassword()==null || userDto.getPassword().isBlank()){
             throw new IllegalArgumentException("Password is Required");
         }
+
+        // Strong password enforcement (registration)
+        validatePassword(userDto.getPassword());
+
         if (userRepository.existsByEmail(userDto.getEmail())){
             throw new IllegalArgumentException("Email already exists");
         }
@@ -94,7 +116,10 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with the given id"));
         //we are not going to change email id for this project
         if(userDto.getName()!=null)existingUser.setName(userDto.getName());
-        if(userDto.getProvider()!=null)existingUser.setProvider(userDto.getProvider());
+        // NOTE: provider yahan kabhi set nahi karte — UserDto mein provider ka
+        // default LOCAL hota hai (UserDto.java), isliye agar profile update mein
+        // {name, password} hi bheja jaye to ye provider ko LOCAL me override kar deta tha.
+        // User ka provider (LOCAL/GOOGLE/GITHUB) fixed rehta hai, profile edit se change nahi hota.
 
         // Password update — sirf tab jab explicitly bheja gaya ho
         if(userDto.getPassword()!=null && !userDto.getPassword().isBlank())
@@ -106,6 +131,10 @@ public class UserServiceImpl implements UserService {
         // AdminServiceImpl alag se handle karta hai
         existingUser.setUpdatedAt(Instant.now());
         User updatedUser = userRepository.save(existingUser);
+
+        // Profile update hone par Redis user-cache bhi refresh karo —
+        // nahi to JWT auth principal 60 min tak purana naam/roles rakhega
+        userCacheService.evictUserCache(updatedUser.getId().toString());
 
         return modelMapper.map(updatedUser,UserDto.class);
     }

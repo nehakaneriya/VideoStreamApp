@@ -108,8 +108,8 @@ export default function Home() {
 
 
   return (
-    <div className="p-6 bg-[#0f0f0f] min-h-screen text-white">
-      <h2 className="text-3xl font-bold mb-8 border-l-4 border-red-600 pl-4 uppercase">
+    <div className="p-3 sm:p-6 bg-[#0f0f0f] min-h-screen text-white">
+      <h2 className="text-xl sm:text-3xl font-bold mb-6 sm:mb-8 border-l-4 border-red-600 pl-3 sm:pl-4 uppercase animate-fade-in-up">
         {search ? `Search Results : "${search}"` : "Explore Videos"}
       </h2>
 
@@ -119,7 +119,7 @@ export default function Home() {
         <p className="text-center text-gray-400">No videos found.</p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-8">
         {videos.map((video, index) => {
           const isLastElement = index === videos.length - 1;
 

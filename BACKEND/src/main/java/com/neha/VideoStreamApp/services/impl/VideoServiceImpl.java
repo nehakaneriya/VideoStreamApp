@@ -400,6 +400,28 @@ public class VideoServiceImpl implements VideoService {
 
     @Override
     @Transactional
+    public VideoDto update(String videoId, String title, String description) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Video not found"));
+
+        // Title/description sirf tab update karo jab naye values bheji gayi hon
+        if (title != null && !title.isBlank()) {
+            video.setTitle(title);
+        }
+        if (description != null) {
+            video.setDescription(description);
+        }
+
+        Video updatedVideo = videoRepository.save(video);
+
+        // Video edit hua — cached feed purani ho gayi, clear karo
+        videoCacheService.evictScrollCache();
+
+        return mapToDto(updatedVideo);
+    }
+
+    @Override
+    @Transactional
     public void delete(String videoId) {
 
         //DB se video lao

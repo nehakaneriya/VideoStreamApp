@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -293,21 +294,38 @@ public class VideoController {
                 .body(resource);
 
     }
-    // 8. Get User Video Stats
-//    @GetMapping("/user-stats")
-//    public ResponseEntity<?> getUserVideoStats() {
-//        // Repository se data fetch karna
-//        List<Object[]> stats = userRepository.countVideosPerUser();
-//
-//        // Data ko clean Map format mein convert karna
-//        List<java.util.Map<String, Object>> response = stats.stream().map(row -> {
-//            java.util.Map<String, Object> map = new java.util.HashMap<>();
-//            map.put("email", row[0]);
-//            map.put("videoCount", row[1]);
-//            return map;
-//        }).toList();
-//
-//        return ResponseEntity.ok(response);
+
+    //7. UPDATE VIDEO METADATA (title/description only)
+    @PutMapping("/{videoId}")
+    public ResponseEntity<?> updateVideo(
+            @PathVariable String videoId,
+            @RequestBody(required = false) Map<String, String> updates,
+            Authentication authentication) {
+
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        String email = authentication.getName();
+        VideoDto video = videoService.get(videoId);
+
+        // Owner ya Admin hi edit kar sakta hai (delete ke same rule)
+        boolean isOwner = video.getUserEmail() != null && video.getUserEmail().equals(email);
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(role -> role.equals("ROLE_ADMIN"));
+
+        if (!isOwner && !isAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("You are not allowed to edit this video");
+        }
+
+        String title = updates != null ? updates.get("title") : null;
+        String description = updates != null ? updates.get("description") : null;
+
+        VideoDto updatedVideo = videoService.update(videoId, title, description);
+        return ResponseEntity.ok(updatedVideo);
+    }
 
     //7. DELETE VIDEO (DB + FOLDER)
     @DeleteMapping("/{videoId}")

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getMyVideos } from "../../service/VideoService";
 import { deleteVideo as deleteVideoService } from "../../service/VideoService";
 import VideoCard from "../../components/Video/VideoCard";
+import EditVideoModal from "../../components/Video/EditVideoModal";
 import { FaPlayCircle } from "react-icons/fa";
 import type { Video } from "../../models/Video";
 import { toast } from "react-toastify";
@@ -11,24 +12,26 @@ import axios from "axios";
 export default function MyVideos() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editVideo, setEditVideo] = useState<Video | null>(null);
+
+  const loadVideos = async () => {
+    try {
+      setLoading(true);
+      const data: Video[] = await getMyVideos();
+      setVideos(data);
+    } catch (err) {
+      console.error("Error fetching videos: ", err);
+      const message =
+        axios.isAxiosError(err) && err.response?.data?.message
+          ? err.response.data.message
+          : "Failed to load videos";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadVideos = async () => {
-      try {
-        setLoading(true);
-        const data: Video[] = await getMyVideos();
-        setVideos(data);
-      } catch (err) {
-        console.error("Error fetching videos: ", err);
-        const message =
-          axios.isAxiosError(err) && err.response?.data?.message
-            ? err.response.data.message
-            : "Failed to load videos";
-        toast.error(message);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadVideos();
   }, []);
 
@@ -53,9 +56,9 @@ export default function MyVideos() {
     <div className="min-h-screen bg-[#0f0f0f] text-white flex justify-center px-4 py-16">
       <div className="w-full max-w-6xl">
 
-        <div className="flex items-center justify-center gap-3 mb-12">
-          <FaPlayCircle className="text-red-600 text-4xl" />
-          <h2 className="text-3xl font-bold text-red-600 uppercase tracking-wider">
+        <div className="flex items-center justify-center gap-3 mb-12 text-center">
+          <FaPlayCircle className="text-red-600 text-3xl sm:text-4xl" />
+          <h2 className="text-xl sm:text-3xl font-bold text-red-600 uppercase tracking-wider">
             My Video Library
           </h2>
         </div>
@@ -84,10 +87,25 @@ export default function MyVideos() {
                   contentType={v.contentType}
                   createdAt={v.createdAt}
                   onDelete={handleDelete}
+                  onEdit={(id) => {
+                    const found = videos.find((item) => item.videoId === id);
+                    if (found) setEditVideo(found);
+                  }}
                 />
               </div>
             ))}
           </div>
+        )}
+
+        {/* Edit Video Modal */}
+        {editVideo && (
+          <EditVideoModal
+            videoId={editVideo.videoId}
+            currentTitle={editVideo.title}
+            currentDescription={editVideo.description}
+            onClose={() => setEditVideo(null)}
+            onSaved={loadVideos}
+          />
         )}
 
       </div>
