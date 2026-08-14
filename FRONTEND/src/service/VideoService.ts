@@ -72,3 +72,9 @@ export const incrementView = async (videoId: string): Promise<number> => {
     const response = await apiClient.post(`/videos/${videoId}/view`);
     return response.data?.viewCount ?? 0;
 };
+
+// Public channel page — kisi bhi user ke videos (bina login)
+export const getChannel = async (userId: string) => {
+    const response = await apiClient.get(`/videos/user/${userId}`);
+    return response.data;
+};

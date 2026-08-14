@@ -5,6 +5,7 @@ import com.neha.VideoStreamApp.dtos.response.ScrollResponse;
 import com.neha.VideoStreamApp.entities.User;
 import com.neha.VideoStreamApp.entities.Video;
 import com.neha.VideoStreamApp.dtos.response.VideoDto;
+import com.neha.VideoStreamApp.dtos.response.UserChannelDto;
 import com.neha.VideoStreamApp.exception.ResourceNotFoundException;
 import com.neha.VideoStreamApp.playload.CustomMessage;
 import com.neha.VideoStreamApp.repositories.UserRepository;
@@ -45,6 +46,7 @@ public class VideoController {
 
     private final VideoService videoService;
     private final UserRepository userRepository;
+    private final com.neha.VideoStreamApp.repositories.CommentRepository commentRepository;
 
 
     //1. Upload Video API
@@ -420,6 +422,9 @@ public class VideoController {
             dto.setCategory(v.getCategory());
             dto.setFilePath(v.getFilePath());
             dto.setViewCount(v.getViewCount());
+            dto.setCommentCount(commentRepository.countByVideo_VideoId(v.getVideoId()));
+            dto.setCreatedAt(v.getCreatedAt());
+            dto.setUpdatedAt(v.getUpdatedAt());
             dto.setUserId(user.getId() != null ? user.getId().toString() : null);
             dto.setUserName(user.getName());
             dto.setUserEmail(user.getEmail());
@@ -427,5 +432,48 @@ public class VideoController {
         }).collect(Collectors.toList());
 
         return ResponseEntity.ok(myVideos);
+    }
+
+    // Public channel page — koi bhi (bina login) user ke videos dekh sakta hai.
+    // Sirf READ. user_id binary UUID hai, isliye findById(UUID) se dhundhte hain.
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getChannel(@PathVariable String userId) {
+
+        User user;
+        try {
+            user = userRepository.findById(UUID.fromString(userId))
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        } catch (IllegalArgumentException e) {
+            throw new ResourceNotFoundException("User not found");
+        }
+
+        List<VideoDto> videos = user.getVideos().stream()
+                .sorted((a, b) -> {
+                    if (a.getCreatedAt() == null || b.getCreatedAt() == null) return 0;
+                    return b.getCreatedAt().compareTo(a.getCreatedAt());
+                })
+                .map(v -> {
+                    VideoDto dto = new VideoDto();
+                    dto.setVideoId(v.getVideoId());
+                    dto.setTitle(v.getTitle());
+                    dto.setDescription(v.getDescription());
+                    dto.setContentType(v.getContentType());
+                    dto.setCategory(v.getCategory());
+                    dto.setFilePath(v.getFilePath());
+                    dto.setViewCount(v.getViewCount());
+                    dto.setCreatedAt(v.getCreatedAt());
+                    dto.setUserId(user.getId() != null ? user.getId().toString() : null);
+                    dto.setUserName(user.getName());
+                    return dto;
+                }).collect(Collectors.toList());
+
+        UserChannelDto channel = UserChannelDto.builder()
+                .userId(user.getId() != null ? user.getId().toString() : null)
+                .userName(user.getName())
+                .videoCount(videos.size())
+                .videos(videos)
+                .build();
+
+        return ResponseEntity.ok(channel);
     }
 }

@@ -195,6 +195,7 @@ export default function Home() {
                 title={video.title}
                 description={video.description}
                 userName={video.userName}
+                userId={video.userId}
                 contentType={video.contentType}
                 category={video.category}
                 createdAt={video.createdAt}

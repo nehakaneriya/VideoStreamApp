@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import VideoCard from "../../components/Video/VideoCard";
 import EditVideoModal from "../../components/Video/EditVideoModal";
 import type { Video } from "../../models/Video";
-import { deleteVideo, getMyVideos } from "../../service/VideoService";
+import { deleteVideo, getMyVideos, getHlsMasterUrl } from "../../service/VideoService";
 import { getCurrentUser } from "@/service/Authservice";
 import useAuthStore from "@/auth/store";
 import type UserT from "@/models/User";
 import { toast } from "react-toastify";
+import { Trash2, Pencil, Tag, MessageCircle, Eye } from "lucide-react";
 
 export default function UserHome() {
 
@@ -15,6 +15,7 @@ export default function UserHome() {
   const [loading, setLoading] = useState(true);
   const [user1, setUser1] = useState<UserT | null>(null);
   const [editVideo, setEditVideo] = useState<Video | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
@@ -50,6 +51,7 @@ export default function UserHome() {
   // 🔹 Delete Video
   const handleDelete = async (id: string) => {
     try {
+      setDeletingId(id);
       await deleteVideo(id);
 
       setVideos((prev) =>
@@ -60,6 +62,8 @@ export default function UserHome() {
     } catch {
       console.error("Delete failed");
       toast.error("Failed to delete video");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -106,29 +110,113 @@ export default function UserHome() {
         </p>
       )}
 
-      {/* Videos Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      {/* Videos Table */}
+      {!loading && videos.length > 0 && (
+        <div className="bg-[#181818] border border-gray-800 rounded-xl overflow-x-auto">
+          <table className="w-full text-left min-w-[800px]">
+            <thead className="bg-[#111] border-b border-gray-800">
+              <tr>
+                <th className="p-4 text-gray-400 text-sm">Title</th>
+                <th className="p-4 text-gray-400 text-sm">Category</th>
+                <th className="p-4 text-gray-400 text-sm">Views</th>
+                <th className="p-4 text-gray-400 text-sm">Comments</th>
+                <th className="p-4 text-gray-400 text-sm">Uploaded</th>
+                <th className="p-4 text-gray-400 text-sm">Actions</th>
+              </tr>
+            </thead>
 
-        {videos.map((video) => (
-          <VideoCard
-            key={video.videoId}
-            videoId={video.videoId}
-            title={video.title}
-            description={video.description}
-            userName={video.userName}
-            contentType={video.contentType}
-            category={video.category}
-            createdAt={video.createdAt}
-            viewCount={video.viewCount}
-            onDelete={handleDelete}
-            onEdit={(id) => {
-              const v = videos.find((item) => item.videoId === id);
-              if (v) setEditVideo(v);
-            }}
-          />
-        ))}
+            <tbody>
+              {videos.map((video) => (
+                <tr
+                  key={video.videoId}
+                  className="border-b border-gray-800 hover:bg-[#1f1f1f] transition"
+                >
+                  {/* Title */}
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      {/* Video thumbnail — actual video ka first frame */}
+                      <div className="relative w-32 aspect-video bg-black rounded-lg overflow-hidden shrink-0">
+                        <video
+                          src={getHlsMasterUrl(video.videoId)}
+                          className="w-full h-full object-cover"
+                          muted
+                          preload="metadata"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <button
+                          onClick={() => navigate(`/watch/${video.videoId}`)}
+                          className="font-medium hover:text-red-400 transition text-left cursor-pointer line-clamp-1"
+                          title={video.title}
+                        >
+                          {video.title}
+                        </button>
+                        {video.description && (
+                          <p className="text-gray-500 text-xs truncate max-w-[280px]">
+                            {video.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
 
-      </div>
+                  {/* Category */}
+                  <td className="p-4">
+                    <span className="inline-flex items-center gap-1.5 bg-red-600/15 text-red-400 px-2.5 py-1 rounded-full text-xs font-medium capitalize">
+                      <Tag size={11} />
+                      {video.category || "other"}
+                    </span>
+                  </td>
+
+                  {/* Views */}
+                  <td className="p-4">
+                    <span className="inline-flex items-center gap-1.5 text-gray-300 text-sm">
+                      <Eye size={14} className="text-gray-500" />
+                      {(video.viewCount ?? 0).toLocaleString()}
+                    </span>
+                  </td>
+
+                  {/* Comments */}
+                  <td className="p-4">
+                    <span className="inline-flex items-center gap-1.5 text-gray-300 text-sm">
+                      <MessageCircle size={14} className="text-gray-500" />
+                      {video.commentCount ?? 0}
+                    </span>
+                  </td>
+
+                  {/* Uploaded At */}
+                  <td className="p-4 text-gray-400 text-sm">
+                    {video.createdAt
+                      ? new Date(video.createdAt).toLocaleDateString()
+                      : "—"}
+                  </td>
+
+                  {/* Actions */}
+                  <td className="p-4">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setEditVideo(video)}
+                        className="flex items-center gap-1 px-3 py-1 bg-gray-700/40 hover:bg-red-600 text-gray-300 hover:text-white text-xs font-medium rounded-lg border border-gray-700 hover:border-red-600 transition cursor-pointer"
+                      >
+                        <Pencil size={12} />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(video.videoId)}
+                        disabled={deletingId === video.videoId}
+                        className="flex items-center gap-1 px-3 py-1 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white text-xs font-medium rounded-lg border border-red-600/20 hover:border-red-600 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <Trash2 size={12} />
+                        {deletingId === video.videoId ? "..." : "Delete"}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Edit Video Modal */}
       {editVideo && (

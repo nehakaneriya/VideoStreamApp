@@ -211,7 +211,7 @@ public class VideoServiceImpl implements VideoService {
 
         List<VideoDto> videos = window.getContent()
                 .stream()
-                .map(video -> modelMapper.map(video, VideoDto.class))
+                .map(this::mapToDto)
                 .toList();
 
         String nextScrollId = null;

@@ -138,13 +138,20 @@ export default function WatchVideo() {
           <div className="flex items-center justify-between mt-3 pb-3 border-b border-gray-800">
             <div className="flex items-center gap-3">
               {/* Avatar */}
-              <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+              <div
+                className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-sm shrink-0 cursor-pointer"
+                onClick={() => videoData?.userId && navigate(`/channel/${videoData.userId}`)}
+                title={videoData?.userName}
+              >
                 {getInitials(videoData?.userName)}
               </div>
               <div>
-                <p className="text-white font-semibold text-sm">
+                <button
+                  className="text-white font-semibold text-sm hover:text-red-500 transition-colors text-left"
+                  onClick={() => videoData?.userId && navigate(`/channel/${videoData.userId}`)}
+                >
                   {videoData?.userName || "Unknown"}
-                </p>
+                </button>
                 <p className="text-gray-500 text-xs">Uploader</p>
               </div>
             </div>
@@ -191,6 +198,7 @@ export default function WatchVideo() {
                   title={v.title}
                   description={v.description}
                   userName={v.userName}
+                  userId={v.userId}
                   contentType={v.contentType}
                   category={v.category}
                   createdAt={v.createdAt}

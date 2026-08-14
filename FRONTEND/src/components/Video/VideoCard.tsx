@@ -6,11 +6,13 @@ interface Props {
   videoId: string;
   title: string;
   description: string;
+  userId?: string;
   userName?: string;
   contentType?: string;
   category?: string;
   createdAt?: string;
   viewCount?: number;
+  userEmailHidden?: boolean;
   onDelete?: (id: string) => void;
   onEdit?: (id: string) => void;
 }
@@ -19,6 +21,7 @@ export default function VideoCard({
   videoId,
   title,
   description,
+  userId,
   userName,
   contentType,
   category,
@@ -85,14 +88,30 @@ export default function VideoCard({
 
         {/* Uploader + Title */}
         <div className="flex gap-2 mb-1">
-          <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
+          <div
+            className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (userId) navigate(`/channel/${userId}`);
+            }}
+            title={userName}
+          >
             {getInitials(userName)}
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-white font-semibold text-sm leading-snug line-clamp-2 group-hover:text-red-400 transition-colors" title={description}>
               {title || "Untitled Video"}
             </h3>
-            <p className="text-gray-500 text-xs mt-0.5">{userName || "Unknown"}</p>
+            <button
+              className="text-gray-500 text-xs mt-0.5 hover:text-red-500 transition-colors text-left"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (userId) navigate(`/channel/${userId}`);
+              }}
+              title={`View ${userName || "user"}'s channel`}
+            >
+              {userName || "Unknown"}
+            </button>
           </div>
         </div>
 
@@ -101,13 +120,9 @@ export default function VideoCard({
           <div className="flex items-center gap-1 text-gray-600 text-[11px] ml-10">
             <Calendar size={11} />
             <span>{formatDate(createdAt)}</span>
-            {viewCount != null && (
-              <>
-                <span className="mx-1 text-gray-700">•</span>
-                <Eye size={11} />
-                <span>{viewCount.toLocaleString()}</span>
-              </>
-            )}
+            <span className="mx-1 text-gray-700">•</span>
+            <Eye size={11} className="text-red-600/70" />
+            <span>{viewCount?.toLocaleString()}</span>
           </div>
         )}
 

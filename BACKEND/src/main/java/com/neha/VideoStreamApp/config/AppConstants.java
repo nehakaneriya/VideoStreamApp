@@ -28,6 +28,9 @@ public class AppConstants {
             "/api/v1/videos",
             "/api/v1/videos/*",
 
+            // Public channel page — kisi bhi user ke videos (bina login)
+            "/api/v1/videos/user/*",
+
             // Public categories list (filter chips + upload dropdown ke liye)
             "/api/v1/categories",
 
