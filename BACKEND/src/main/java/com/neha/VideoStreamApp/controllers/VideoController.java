@@ -53,6 +53,7 @@ public class VideoController {
             @RequestParam("file")MultipartFile file,
             @RequestParam("title") String title,
             @RequestParam("description") String description,
+            @RequestParam(required = false) String category,
             Authentication authentication
             ){
 
@@ -69,6 +70,11 @@ public class VideoController {
                 video.setTitle(title);
                 video.setDescription(description);
                 video.setUser(user);
+
+                // Category (optional — backend 'other' default de dega agar null/blank hai)
+                if (category != null && !category.isBlank()) {
+                    video.setCategory(category.trim().toLowerCase());
+                }
 
                 // Save video metadata + file
                 VideoDto savedVideo = videoService.save(video, file);
@@ -90,7 +96,36 @@ public class VideoController {
                 }
     }
 
-    //2. Get All Videos
+    //2. Record a unique view (public — bina login bhi guest dekh sakta hai)
+    //   Same user + same video lifetime me ek baar hi count hota hai
+    @PostMapping("/{videoId}/view")
+    public ResponseEntity<?> incrementView(
+            @PathVariable String videoId,
+            @RequestHeader(value = "X-Forwarded-For", required = false) String forwardedFor,
+            Authentication authentication
+    ) {
+        UUID userId = null;
+        if (authentication != null && authentication.getName() != null) {
+            // Login user — unique check user_id se hoga
+            var userOpt = userRepository.findByEmail(authentication.getName());
+            if (userOpt.isPresent()) {
+                userId = userOpt.get().getId();
+            }
+        }
+
+        // Guest ke liye client IP
+        String viewerIp = null;
+        if (userId == null) {
+            viewerIp = forwardedFor != null && !forwardedFor.isBlank()
+                    ? forwardedFor.split(",")[0].trim()
+                    : "unknown";
+        }
+
+        videoService.incrementView(videoId, userId, viewerIp);
+        return ResponseEntity.ok(Map.of("viewCount", videoService.get(videoId).getViewCount()));
+    }
+
+    //3. Get All Videos
     @GetMapping
     public ResponseEntity<ScrollResponse<VideoDto>> getAll(
             @RequestParam(required = false) String search,
@@ -98,6 +133,7 @@ public class VideoController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant createdAfter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant createdBefore,
             @RequestParam(required = false) String contentType,
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) String scrollId,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -110,6 +146,7 @@ public class VideoController {
                 createdAfter,
                 createdBefore,
                 contentType,
+                category,
                 scrollId,
                 pageSize,
                 sortBy,
@@ -380,7 +417,9 @@ public class VideoController {
             dto.setTitle(v.getTitle());
             dto.setDescription(v.getDescription());
             dto.setContentType(v.getContentType());
+            dto.setCategory(v.getCategory());
             dto.setFilePath(v.getFilePath());
+            dto.setViewCount(v.getViewCount());
             dto.setUserId(user.getId() != null ? user.getId().toString() : null);
             dto.setUserName(user.getName());
             dto.setUserEmail(user.getEmail());

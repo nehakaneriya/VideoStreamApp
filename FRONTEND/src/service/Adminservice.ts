@@ -57,3 +57,15 @@ export const deleteVideoAdmin = async (videoId: string) => {
   );
   return response.data;
 };
+
+// Category stats — har category me kitne videos hain
+export interface CategoryStats {
+  slug: string;
+  name: string;
+  videoCount: number;
+}
+
+export const getCategoryStats = async (): Promise<CategoryStats[]> => {
+  const response = await apiClient.get(`/admin/categories/stats`);
+  return response.data;
+};

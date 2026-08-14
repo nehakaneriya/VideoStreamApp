@@ -17,7 +17,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
   const privateMenu = [
     { name: "Upload Video", path: "/UserHome/upload", icon: Upload },
-    { name: "My Videos",    path: "/UserHome/myvideos", icon: Video },
+    { name: "My Videos",    path: "/UserHome",         icon: Video },
     { name: "Feedback",     path: "/UserHome/feedback", icon: MessageSquare },
   ];
 

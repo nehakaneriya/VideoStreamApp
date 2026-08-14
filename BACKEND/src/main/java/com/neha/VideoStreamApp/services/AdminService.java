@@ -2,6 +2,7 @@ package com.neha.VideoStreamApp.services;
 
 import com.neha.VideoStreamApp.dtos.response.AdminDashboardDto;
 import com.neha.VideoStreamApp.dtos.common.UserDto;
+import com.neha.VideoStreamApp.dtos.response.CategoryStatsDto;
 import com.neha.VideoStreamApp.dtos.response.VideoDto;
 
 import java.util.List;
@@ -18,4 +19,7 @@ public interface AdminService {
 
     // Admin role hatao — user wapas normal USER ban jayega
     void removeAdminRole(UUID userId);
+
+    // Admin: har category me kitne videos hain
+    List<CategoryStatsDto> getCategoryStats();
 }

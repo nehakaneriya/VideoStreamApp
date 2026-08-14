@@ -17,7 +17,8 @@ public class VideoSpecification {
             UUID userId,
             Instant createdAfter,
             Instant createdBefore,
-            String contentType
+            String contentType,
+            String category
     ) {
         return (root, query, cb) -> {
 
@@ -47,6 +48,16 @@ public class VideoSpecification {
                         cb.equal(
                                 root.get("contentType"),
                                 contentType
+                        )
+                );
+            }
+
+            // Filter by Category (slug — e.g. "tech", "music")
+            if (category != null && !category.isBlank()) {
+                predicates.add(
+                        cb.equal(
+                                cb.lower(root.get("category")),
+                                category.toLowerCase()
                         )
                 );
             }

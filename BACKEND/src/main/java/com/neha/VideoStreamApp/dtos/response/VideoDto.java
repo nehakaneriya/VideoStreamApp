@@ -17,7 +17,11 @@ public class VideoDto {
     private String title;
     private String description;
     private String contentType;
+    private String category;
     private String filePath;
+
+    // views
+    private long viewCount;
 
     private Instant createdAt;
     private Instant updatedAt;
@@ -26,4 +30,7 @@ public class VideoDto {
     private String userId;
     private String userName;
     private String userEmail;
+
+    // admin panel ke liye — is video pe kitne comments hain
+    private Long commentCount;
 }

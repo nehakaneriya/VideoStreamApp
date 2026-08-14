@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Play, Trash2, Calendar, Pencil } from "lucide-react";
+import { Play, Trash2, Calendar, Eye, Pencil } from "lucide-react";
 import { getHlsMasterUrl } from "@/service/VideoService";
 
 interface Props {
@@ -8,7 +8,9 @@ interface Props {
   description: string;
   userName?: string;
   contentType?: string;
+  category?: string;
   createdAt?: string;
+  viewCount?: number;
   onDelete?: (id: string) => void;
   onEdit?: (id: string) => void;
 }
@@ -19,7 +21,9 @@ export default function VideoCard({
   description,
   userName,
   contentType,
+  category,
   createdAt,
+  viewCount,
   onDelete,
   onEdit,
 }: Props) {
@@ -61,6 +65,13 @@ export default function VideoCard({
           </div>
         </div>
 
+        {/* Category badge */}
+        {category && (
+          <span className="absolute top-2 left-2 bg-red-600/90 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
+            {category}
+          </span>
+        )}
+
         {/* Content type badge */}
         {contentType && (
           <span className="absolute top-2 right-2 bg-black/70 text-gray-300 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
@@ -85,11 +96,18 @@ export default function VideoCard({
           </div>
         </div>
 
-        {/* Date */}
+        {/* Date + Views */}
         {createdAt && (
           <div className="flex items-center gap-1 text-gray-600 text-[11px] ml-10">
             <Calendar size={11} />
             <span>{formatDate(createdAt)}</span>
+            {viewCount != null && (
+              <>
+                <span className="mx-1 text-gray-700">•</span>
+                <Eye size={11} />
+                <span>{viewCount.toLocaleString()}</span>
+              </>
+            )}
           </div>
         )}
 

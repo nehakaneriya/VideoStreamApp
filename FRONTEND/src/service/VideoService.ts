@@ -2,12 +2,15 @@ import apiClient from "../config/ApiClient";
 import type { Video } from "../models/Video"; 
 import type { ScrollResponse } from "../models/ScrollResponse";
 
-export const uploadVideo = async (file: File, title: string, description: string) => {
+export const uploadVideo = async (file: File, title: string, description: string, category?: string) => {
     // 1. File upload ke liye FormData zaroori hai
     const formData = new FormData();
     formData.append("file", file);
     formData.append("title", title);
     formData.append("description", description);
+    if (category) {
+        formData.append("category", category);
+    }
 
     // 2. POST request with multipart header
     const response = await apiClient.post("/videos", formData, {
@@ -29,14 +32,16 @@ export const getMyVideos = async (): Promise<Video[]> => {
 export const getAllVideos = async (
     search: string = "",
     scrollId?: string,
-    pageSize: number = 12
+    pageSize: number = 12,
+    category?: string
 ): Promise<ScrollResponse<Video>> => {
     // Public feed ke liye
     const response = await apiClient.get("/videos", {
         params: {
             search,
             scrollId,
-            pageSize
+            pageSize,
+            category
         }
     });
     return response.data;
@@ -60,4 +65,10 @@ export const updateVideo = async (
 // HLS Master URL generate karne ka helper
 export const getHlsMasterUrl = (videoId: string) => {
     return `${apiClient.defaults.baseURL}/videos/${videoId}/master.m3u8`;
+};
+
+// Unique view record karta hai — same user + same video lifetime ek baar
+export const incrementView = async (videoId: string): Promise<number> => {
+    const response = await apiClient.post(`/videos/${videoId}/view`);
+    return response.data?.viewCount ?? 0;
 };

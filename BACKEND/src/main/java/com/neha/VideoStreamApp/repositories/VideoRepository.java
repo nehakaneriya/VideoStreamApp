@@ -4,6 +4,9 @@ import com.neha.VideoStreamApp.entities.Video;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,4 +18,15 @@ public interface VideoRepository extends JpaRepository<Video,String>, JpaSpecifi
     Optional<Video> findByTitle (String title);
 
     List<Video> findByUserEmail(String email);
+
+    long countByCategory(String category);
+
+    // Category delete hone par uske videos ko 'other' me move karne ke liye
+    @Modifying
+    @Query("UPDATE Video v SET v.category = :toSlug WHERE v.category = :fromSlug")
+    int moveCategory(@Param("fromSlug") String fromSlug, @Param("toSlug") String toSlug);
+
+    // Admin: har category me kitne videos hain — [category, count] pairs
+    @Query("SELECT v.category, COUNT(v) FROM Video v GROUP BY v.category")
+    List<Object[]> countGroupedByCategory();
 }

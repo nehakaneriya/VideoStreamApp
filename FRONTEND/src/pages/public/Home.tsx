@@ -2,7 +2,9 @@ import {useEffect,useState,useRef,useCallback} from "react";
 import { useSearchParams } from "react-router-dom";
 import VideoCard from "../../components/Video/VideoCard";
 import type { Video } from "../../models/Video";
+import type { Category } from "../../models/Category";
 import { getAllVideos } from "../../service/VideoService";
+import { getAllCategories } from "../../service/CategoryService";
 
 export default function Home() {
 
@@ -16,6 +18,10 @@ export default function Home() {
   const [scrollId, setScrollId] = useState<string | undefined>();
   const [hasNext, setHasNext] = useState(true);
 
+  // Categories filter
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [activeCategory, setActiveCategory] = useState("all");
+
 
   // Synchronous State Tracking Refs (Fixes Stale Closure Issues)
   const loadingRef = useRef(loading);
@@ -27,7 +33,17 @@ export default function Home() {
   const scrollIdRef = useRef(scrollId);
   scrollIdRef.current = scrollId;
 
+  const activeCategoryRef = useRef(activeCategory);
+  activeCategoryRef.current = activeCategory;
+
   const observer = useRef<IntersectionObserver | null>(null);
+
+  // Categories load karo (filter chips ke liye)
+  useEffect(() => {
+    getAllCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]));
+  }, []);
 
   // First Page
   const fetchFirstPage = useCallback(async () => {
@@ -37,7 +53,8 @@ export default function Home() {
       const response = await getAllVideos(
         search,
         undefined,
-        12
+        12,
+        activeCategoryRef.current === "all" ? undefined : activeCategoryRef.current
       );
 
       // Safe Fallback: content defined nahi hone par empty array set karein
@@ -65,7 +82,8 @@ export default function Home() {
       const response = await getAllVideos(
         search,
         scrollIdRef.current,
-        12
+        12,
+        activeCategoryRef.current === "all" ? undefined : activeCategoryRef.current
       );
 
       const newContent = response?.content || [];
@@ -78,7 +96,13 @@ export default function Home() {
       setLoading(false);
     }
   }, [search]);
-// Reset State on Search Query Change
+
+  // Category click — reset aur first page fetch karo
+  const handleCategoryClick = useCallback((slug: string) => {
+    setActiveCategory(slug);
+  }, []);
+
+// Reset State on Search/Category Query Change
   useEffect(() => {
     setVideos([]);
     setScrollId(undefined);
@@ -89,7 +113,7 @@ export default function Home() {
       if (observer.current) observer.current.disconnect();
     };
 
-  }, [search, fetchFirstPage]);
+  }, [search, activeCategory, fetchFirstPage]);
 
  // Observer Ref Callback
   const lastVideoRef = useCallback((node: HTMLDivElement | null) => {
@@ -113,6 +137,44 @@ export default function Home() {
         {search ? `Search Results : "${search}"` : "Explore Videos"}
       </h2>
 
+      {/* Category filter chips */}
+      <div className="flex flex-wrap gap-2 mb-6 sm:mb-8">
+        <button
+          onClick={() => handleCategoryClick("all")}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer border ${
+            activeCategory === "all"
+              ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-600/30"
+              : "bg-[#181818] border-gray-700 text-gray-300 hover:border-red-600/50 hover:text-white"
+          }`}
+        >
+          All
+        </button>
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => handleCategoryClick(cat.slug)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer border ${
+              activeCategory === cat.slug
+                ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-600/30"
+                : "bg-[#181818] border-gray-700 text-gray-300 hover:border-red-600/50 hover:text-white"
+            }`}
+          >
+            {cat.name}
+          </button>
+        ))}
+        {/* 'other' special category hai — categories table me nahi hoti */}
+        <button
+          onClick={() => handleCategoryClick("other")}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer border ${
+            activeCategory === "other"
+              ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-600/30"
+              : "bg-[#181818] border-gray-700 text-gray-300 hover:border-red-600/50 hover:text-white"
+          }`}
+        >
+          Other
+        </button>
+      </div>
+
       {error && <p className="text-center text-red-500">{error}</p>}
 
       {videos.length === 0 && !loading && (
@@ -134,7 +196,9 @@ export default function Home() {
                 description={video.description}
                 userName={video.userName}
                 contentType={video.contentType}
+                category={video.category}
                 createdAt={video.createdAt}
+                viewCount={video.viewCount}
               />
             </div>
           );

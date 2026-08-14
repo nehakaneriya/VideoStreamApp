@@ -3,11 +3,15 @@ package com.neha.VideoStreamApp.services.impl;
 import com.neha.VideoStreamApp.config.AppConstants;
 import com.neha.VideoStreamApp.dtos.response.AdminDashboardDto;
 import com.neha.VideoStreamApp.dtos.common.UserDto;
+import com.neha.VideoStreamApp.dtos.response.CategoryStatsDto;
 import com.neha.VideoStreamApp.dtos.response.VideoDto;
+import com.neha.VideoStreamApp.entities.Category;
 import com.neha.VideoStreamApp.entities.Role;
 import com.neha.VideoStreamApp.entities.User;
 import com.neha.VideoStreamApp.entities.Video;
 import com.neha.VideoStreamApp.exception.ResourceNotFoundException;
+import com.neha.VideoStreamApp.repositories.CategoryRepository;
+import com.neha.VideoStreamApp.repositories.CommentRepository;
 import com.neha.VideoStreamApp.repositories.RefreshTokenRepository;
 import com.neha.VideoStreamApp.repositories.RoleRepository;
 import com.neha.VideoStreamApp.repositories.UserRepository;
@@ -22,7 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,6 +43,8 @@ public class AdminServiceImpl implements AdminService {
     private final ModelMapper modelMapper;
     private final VideoService videoService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final CommentRepository commentRepository;
+    private final CategoryRepository categoryRepository;
 
     @Override
     public AdminDashboardDto getDashboardStats() {
@@ -158,9 +166,42 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public List<VideoDto> getAllVideos() {
 
-        return videoRepository.findAll()
+        List<VideoDto> videos = videoRepository.findAll()
                 .stream()
                 .map(this::mapToVideoDto)
+                .toList();
+
+        // Ek hi query me saare videos ke comment counts lo — [videoId, count] pairs
+        Map<String, Long> commentCountMap = new HashMap<>();
+        commentRepository.countGroupedByVideoId().forEach(row -> {
+            commentCountMap.put((String) row[0], (Long) row[1]);
+        });
+
+        videos.forEach(video -> video.setCommentCount(commentCountMap.getOrDefault(video.getVideoId(), 0L)));
+        return videos;
+    }
+
+    @Override
+    public List<CategoryStatsDto> getCategoryStats() {
+
+        // Har category slug ka video count — [category, count] pairs
+        Map<String, Long> countBySlug = new HashMap<>();
+        videoRepository.countGroupedByCategory().forEach(row -> {
+            countBySlug.put((String) row[0], (Long) row[1]);
+        });
+
+        // Category names ke liye — categories table se lookup
+        Map<String, String> nameBySlug = categoryRepository.findAll()
+                .stream()
+                .collect(Collectors.toMap(Category::getSlug, Category::getName, (a, b) -> a));
+
+        return countBySlug.entrySet().stream()
+                .map(entry -> CategoryStatsDto.builder()
+                        .slug(entry.getKey())
+                        .name(nameBySlug.getOrDefault(entry.getKey(), entry.getKey()))
+                        .videoCount(entry.getValue())
+                        .build())
+                .sorted((a, b) -> Long.compare(b.getVideoCount(), a.getVideoCount()))
                 .toList();
     }
 
@@ -176,7 +217,10 @@ public class AdminServiceImpl implements AdminService {
                 .title(video.getTitle())
                 .description(video.getDescription())
                 .contentType(video.getContentType())
+                .category(video.getCategory())
                 .filePath(video.getFilePath())
+                .viewCount(video.getViewCount())
+                .createdAt(video.getCreatedAt())
                 .userId(
                         video.getUser() != null
                                 ? video.getUser().getId().toString()

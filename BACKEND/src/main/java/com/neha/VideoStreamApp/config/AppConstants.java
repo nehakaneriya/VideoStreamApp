@@ -28,6 +28,9 @@ public class AppConstants {
             "/api/v1/videos",
             "/api/v1/videos/*",
 
+            // Public categories list (filter chips + upload dropdown ke liye)
+            "/api/v1/categories",
+
             // HLS streaming — public (video player ke liye token nahi chahiye)
             "/api/v1/videos/*/master.m3u8",
             "/api/v1/videos/*/*/playlist.m3u8",

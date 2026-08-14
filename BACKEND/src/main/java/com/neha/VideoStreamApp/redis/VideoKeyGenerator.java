@@ -20,6 +20,7 @@ public class VideoKeyGenerator {
             Instant createdAfter,
             Instant createdBefore,
             String contentType,
+            String category,
             String scrollId,
             int pageSize,
             String sortBy,
@@ -33,6 +34,7 @@ public class VideoKeyGenerator {
         addIfNotNull(joiner, "createdAfter", createdAfter != null ? createdAfter.toString() : null);
         addIfNotNull(joiner, "createdBefore", createdBefore != null ? createdBefore.toString() : null);
         addIfNotNull(joiner, "contentType", contentType);
+        addIfNotNull(joiner, "category", category);
         addIfNotNull(joiner, "scrollId", scrollId);
 
         joiner.add("pageSize=" + pageSize);

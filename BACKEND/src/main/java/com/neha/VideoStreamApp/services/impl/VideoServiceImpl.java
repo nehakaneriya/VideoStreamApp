@@ -2,13 +2,18 @@ package com.neha.VideoStreamApp.services.impl;
 
 import com.neha.VideoStreamApp.cache.VideoCacheService;
 import com.neha.VideoStreamApp.dtos.response.ScrollResponse;
+import com.neha.VideoStreamApp.dtos.response.VideoDto;
+import com.neha.VideoStreamApp.entities.User;
 import com.neha.VideoStreamApp.entities.Video;
+import com.neha.VideoStreamApp.entities.VideoView;
 import com.neha.VideoStreamApp.exception.BadRequestException;
 import com.neha.VideoStreamApp.exception.ResourceNotFoundException;
 import com.neha.VideoStreamApp.exception.VideoProcessingException;
 import com.neha.VideoStreamApp.helper.ScrollPositionCodec;
 import com.neha.VideoStreamApp.repositories.CommentRepository;
+import com.neha.VideoStreamApp.repositories.UserRepository;
 import com.neha.VideoStreamApp.repositories.VideoRepository;
+import com.neha.VideoStreamApp.repositories.VideoViewRepository;
 import com.neha.VideoStreamApp.services.VideoService;
 import com.neha.VideoStreamApp.specifications.VideoSpecification;
 import jakarta.annotation.PostConstruct;
@@ -35,6 +40,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -55,6 +61,8 @@ public class VideoServiceImpl implements VideoService {
 
     private  final VideoRepository videoRepository;
     private final CommentRepository commentRepository;
+    private final VideoViewRepository videoViewRepository;
+    private final UserRepository userRepository;
     private final ModelMapper modelMapper;
     private final VideoCacheService videoCacheService;
 
@@ -111,6 +119,11 @@ public class VideoServiceImpl implements VideoService {
             video.setFilePath(filePath.toString());
             video.setContentType(file.getContentType());
 
+            // Category nahi bheji gayi to default 'other' set karo
+            if (video.getCategory() == null || video.getCategory().isBlank()) {
+                video.setCategory(CategoryServiceImpl.DEFAULT_CATEGORY_SLUG);
+            }
+
             Video savedVideo = videoRepository.save(video);
 
             // 7. Start video processing (HLS conversion)
@@ -146,17 +159,18 @@ public class VideoServiceImpl implements VideoService {
                                            Instant createdAfter,
                                            Instant createdBefore,
                                            String contentType,
+                                           String category,
 
                                            String scrollId,
                                            int pageSize,
                                            String sortBy,
                                            Sort.Direction sortDirection) {
 
-        log.debug("Checking cache for search={} userId={} createdAfter={} createdBefore={} contentType={} scrollId={} pageSize={} sortBy={} sortDirection={}",search,userId,createdAfter,createdBefore,contentType,scrollId,pageSize,sortBy,sortDirection);
-        ScrollResponse<VideoDto> cachedScrollResponse = videoCacheService.getCachedScrollResponse(search, userId, createdAfter, createdBefore, contentType, scrollId, pageSize, sortBy, sortDirection);
+        log.debug("Checking cache for search={} userId={} createdAfter={} createdBefore={} contentType={} category={} scrollId={} pageSize={} sortBy={} sortDirection={}",search,userId,createdAfter,createdBefore,contentType,category,scrollId,pageSize,sortBy,sortDirection);
+        ScrollResponse<VideoDto> cachedScrollResponse = videoCacheService.getCachedScrollResponse(search, userId, createdAfter, createdBefore, contentType, category, scrollId, pageSize, sortBy, sortDirection);
 
         if (cachedScrollResponse != null) {
-            log.debug("Cache hit for search={} userId={} createdAfter={} createdBefore={} contentType={} scrollId={} pageSize={} sortBy={} sortDirection={}",search,userId,createdAfter,createdBefore,contentType,scrollId,pageSize,sortBy,sortDirection);
+            log.debug("Cache hit for search={} userId={} createdAfter={} createdBefore={} contentType={} category={} scrollId={} pageSize={} sortBy={} sortDirection={}",search,userId,createdAfter,createdBefore,contentType,category,scrollId,pageSize,sortBy,sortDirection);
             return cachedScrollResponse;
         }
 
@@ -169,7 +183,8 @@ public class VideoServiceImpl implements VideoService {
                 userId,
                 createdAfter,
                 createdBefore,
-                contentType
+                contentType,
+                category
         );
 
         Sort.Direction direction=(sortDirection == null || sortDirection == Sort.Direction.ASC)
@@ -213,7 +228,7 @@ public class VideoServiceImpl implements VideoService {
                 .pageSize(pageSize)
                 .build();
         log.debug("Caching ScrollResponse for Future requests");
-        videoCacheService.cacheScrollResponse(responseToReturn, search, userId, createdAfter, createdBefore, contentType, scrollId, pageSize, sortBy, sortDirection);
+        videoCacheService.cacheScrollResponse(responseToReturn, search, userId, createdAfter, createdBefore, contentType, category, scrollId, pageSize, sortBy, sortDirection);
         return responseToReturn;
     }
 
@@ -430,6 +445,7 @@ public class VideoServiceImpl implements VideoService {
 
         commentRepository.deleteByVideo_VideoIdAndParentCommentIsNotNull(videoId);
         commentRepository.deleteByVideo_VideoId(videoId);
+        videoViewRepository.deleteByVideo_VideoId(videoId);
 
         //Original video delete
         File videoFile = new File(video.getFilePath());
@@ -450,6 +466,54 @@ public class VideoServiceImpl implements VideoService {
         videoRepository.delete(video);
 
         // Video delete hua — cached list clear karo
+        videoCacheService.evictScrollCache();
+    }
+
+
+    // View record karta hai — 30s watch ke baad frontend bhejta hai.
+    // Same user + same video ka view 24h window me ek baar hi count hota hai (refresh spam protection)
+    @Override
+    @Transactional
+    public void incrementView(String videoId, UUID userId, String viewerIp) {
+
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Video not found"));
+
+        // 24h window — last 24 ghante me view ho chuka hai kya?
+        Instant windowStart = Instant.now().minus(Duration.ofHours(24));
+
+        boolean alreadyCounted;
+
+        if (userId != null) {
+            alreadyCounted = videoViewRepository
+                    .existsByVideo_VideoIdAndUser_IdAndViewedAtAfter(videoId, userId, windowStart);
+        } else {
+            // Guest — IP based check
+            alreadyCounted = viewerIp != null && videoViewRepository
+                    .existsByVideo_VideoIdAndViewerIpAndViewedAtAfter(videoId, viewerIp, windowStart);
+        }
+
+        if (alreadyCounted) {
+            return; // 24h me ek hi view — count nahi badhega
+        }
+
+        // Naya view — video_views me row insert karo aur video ka total count +1 karo
+        User viewer = null;
+        if (userId != null) {
+            viewer = userRepository.findById(userId).orElse(null);
+        }
+
+        videoViewRepository.save(VideoView.builder()
+                .video(video)
+                .user(viewer)
+                .viewerIp(userId != null ? null : viewerIp)
+                .viewedAt(Instant.now())
+                .build());
+
+        video.setViewCount(video.getViewCount() + 1);
+        videoRepository.save(video);
+
+        // Count badal gaya — cached list clear karo
         videoCacheService.evictScrollCache();
     }
 
@@ -487,7 +551,9 @@ public class VideoServiceImpl implements VideoService {
         dto.setTitle(video.getTitle());
         dto.setDescription(video.getDescription());
         dto.setContentType(video.getContentType());
+        dto.setCategory(video.getCategory());
         dto.setFilePath(video.getFilePath());
+        dto.setViewCount(video.getViewCount());
         dto.setCreatedAt(video.getCreatedAt());
         if (video.getUser() != null) {
             dto.setUserId(video.getUser().getId() != null ? video.getUser().getId().toString() : null);

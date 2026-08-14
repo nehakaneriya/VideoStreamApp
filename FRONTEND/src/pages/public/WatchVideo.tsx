@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import VideoPlayer from "../../components/Video/VideoPlayer";
 import { Spinner } from "@/components/ui/spinner";
 import apiClient from "@/config/ApiClient";
-import { getHlsMasterUrl, getAllVideos } from "@/service/VideoService";
+import { getHlsMasterUrl, getAllVideos, incrementView } from "@/service/VideoService";
 import type { Video } from "@/models/Video";
-import { ArrowLeft, Calendar, Film } from "lucide-react";
+import { ArrowLeft, Calendar, Eye, Film } from "lucide-react";
 import VideoCard from "@/components/Video/VideoCard";
 import CommentSection from "@/components/Video/CommentSection";
 
@@ -17,8 +17,13 @@ export default function WatchVideo() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 30s threshold — sirf tab view bhejenge jab user ne 30 sec actually dekha ho
+  const viewSentRef = useRef(false);
+
   useEffect(() => {
     if (!videoId) return;
+    // Naye video pe reset
+    viewSentRef.current = false;
     const fetchDetails = async () => {
       try {
         const [videoRes, allVideos] = await Promise.all([
@@ -37,6 +42,15 @@ export default function WatchVideo() {
     fetchDetails();
   }, [videoId]);
 
+  // 30s watch hone par ek baar view bhejo (useCallback — VideoPlayer effect dependency stable rahe)
+  const handleWatchTime = useCallback((watchedSeconds: number) => {
+    if (viewSentRef.current || watchedSeconds < 30) return;
+    viewSentRef.current = true;
+    incrementView(videoId!).then((count) => {
+      setVideoData((prev) => (prev ? { ...prev, viewCount: count } : prev));
+    }).catch(() => {});
+  }, [videoId]);
+
   if (!videoId) return <Navigate to="/" replace />;
 
   const formatDate = (dateStr?: string) => {
@@ -49,6 +63,13 @@ export default function WatchVideo() {
   const getInitials = (name?: string) => {
     if (!name) return "?";
     return name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  };
+
+  const formatViews = (count?: number) => {
+    if (!count) return "0 views";
+    if (count >= 1_000_000) return (count / 1_000_000).toFixed(1) + "M views";
+    if (count >= 1_000) return (count / 1_000).toFixed(1) + "K views";
+    return count + (count === 1 ? " view" : " views");
   };
 
   if (loading) {
@@ -98,13 +119,20 @@ export default function WatchVideo() {
 
           {/* Video Player */}
           <div className="rounded-xl overflow-hidden">
-            <VideoPlayer src={getHlsMasterUrl(videoId)} />
+            <VideoPlayer src={getHlsMasterUrl(videoId)} onWatchTime={handleWatchTime} />
           </div>
 
           {/* Title */}
           <h1 className="text-xl md:text-2xl font-bold mt-4 leading-snug">
             {videoData?.title || "Untitled Video"}
           </h1>
+
+          {/* Category badge */}
+          {videoData?.category && (
+            <span className="inline-block mt-2 bg-red-600 text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide">
+              {videoData.category}
+            </span>
+          )}
 
           {/* Uploader Info + Date */}
           <div className="flex items-center justify-between mt-3 pb-3 border-b border-gray-800">
@@ -128,6 +156,12 @@ export default function WatchVideo() {
                 <span>{formatDate(videoData.createdAt)}</span>
               </div>
             )}
+          </div>
+
+          {/* Views counter */}
+          <div className="flex items-center gap-1.5 text-gray-400 text-sm mt-3">
+            <Eye size={15} className="text-red-600" />
+            <span className="font-semibold">{formatViews(videoData?.viewCount)}</span>
           </div>
 
           {/* Description Box */}
@@ -158,7 +192,9 @@ export default function WatchVideo() {
                   description={v.description}
                   userName={v.userName}
                   contentType={v.contentType}
+                  category={v.category}
                   createdAt={v.createdAt}
+                  viewCount={v.viewCount}
                 />
               ))}
             </div>

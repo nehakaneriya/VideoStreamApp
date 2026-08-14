@@ -37,8 +37,15 @@ public class Video extends BaseEntity {
     @Column(nullable = false)
     private String contentType;
 
+    @Column(nullable = false, length = 50, columnDefinition = "varchar(50) default 'other'")
+    private String category = "other";
+
     @Column(nullable = false)
     private String filePath;
+
+    // total unique views count (denormalized)
+    @Column(nullable = false)
+    private long viewCount = 0;
 
 
     @ManyToOne(fetch = FetchType.LAZY)

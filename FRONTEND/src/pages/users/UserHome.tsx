@@ -66,19 +66,21 @@ export default function UserHome() {
   return (
     <div className="p-6 bg-[#0f0f0f] min-h-screen text-white">
 
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-
-        <div>
-          <h2 className="text-xl sm:text-3xl font-bold border-l-4 border-red-600 pl-4 uppercase">
-            Your Dashboard
-          </h2>
-
-          {user1 && (
-            <p className="text-gray-400 mt-1">
-              Welcome {user1.name} 👋
+      {/* Header — profile style: name + email */}
+      <div className="flex flex-col sm:flex-row flex-wrap items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-4">
+          {/* Avatar */}
+          <div className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center text-2xl font-bold text-white select-none shrink-0">
+            {(user1?.name || user?.name || "U").charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold truncate">
+              {user1?.name || user?.name || "User"}
+            </h2>
+            <p className="text-gray-400 text-sm truncate">
+              {user?.email || user1?.email}
             </p>
-          )}
+          </div>
         </div>
 
         <button
@@ -115,7 +117,9 @@ export default function UserHome() {
             description={video.description}
             userName={video.userName}
             contentType={video.contentType}
+            category={video.category}
             createdAt={video.createdAt}
+            viewCount={video.viewCount}
             onDelete={handleDelete}
             onEdit={(id) => {
               const v = videos.find((item) => item.videoId === id);

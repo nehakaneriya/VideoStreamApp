@@ -9,6 +9,8 @@ import { Settings } from "lucide-react";
 
 interface VideoPlayerProps {
   src: string;
+  // Player ne kitne seconds actually dekhe (cumulative) — 30s threshold ke liye
+  onWatchTime?: (watchedSeconds: number) => void;
 }
 
 // videojs-contrib-quality-levels runtime object ka shape — plugin ke saath
@@ -35,10 +37,14 @@ type PlayerWithQualityLevels = ReturnType<typeof videojs> & {
   qualityLevels?: () => QualityLevelList;
 };
 
-export default function VideoPlayer({ src }: VideoPlayerProps) {
+export default function VideoPlayer({ src, onWatchTime }: VideoPlayerProps) {
   const videoRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<ReturnType<typeof videojs> | null>(null);
   const qualityLevelsRef = useRef<QualityLevelList | null>(null);
+
+  // Watch-time tracking — seek jump (backward) ko negative delta se ignore karta hai
+  const lastTimeRef = useRef(0);
+  const watchedRef = useRef(0);
 
   const [qualityOptions, setQualityOptions] = useState<number[]>([]);
   const [currentQuality, setCurrentQuality] = useState<"auto" | number>("auto");
@@ -92,6 +98,20 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
 
       videoElement.addEventListener("contextmenu", (e) => e.preventDefault());
 
+      // Cumulative watch-time tracking — timeupdate har ~250ms fire hota hai
+      player.on("timeupdate", () => {
+        const currentTime = player.currentTime() || 0;
+        const delta = currentTime - lastTimeRef.current;
+
+        // Forward playback hi count karo — seek backward/forward jump nahi
+        // (badi jumps ko bhi ignore karo taaki seek ko "watch" na maana jaye)
+        if (delta > 0 && delta < 10) {
+          watchedRef.current += delta;
+          onWatchTime?.(watchedRef.current);
+        }
+        lastTimeRef.current = currentTime;
+      });
+
     } else {
       playerRef.current.src({ src, type: "application/x-mpegURL" });
       // setState ko effect ke synchronous flow se bahar (microtask mein) daala
@@ -108,7 +128,7 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
         playerRef.current = null;
       }
     };
-  }, [src]);
+  }, [src, onWatchTime]);
 
   // User ne dropdown se koi quality (ya "Auto") choose kiya
   const handleSelectQuality = (height: "auto" | number) => {

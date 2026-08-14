@@ -8,7 +8,6 @@ import Login from "./pages/public/Login"
 import Registration from "./pages/public/Registration"
 import WatchVideo from "./pages/public/WatchVideo"
 import Upload from "./pages/users/Upload"
-import MyVideos from "./pages/users/Myvideos"
 import Home from "./pages/public/Home"
 import RootLayout from "./pages/public/RootLayout"
 import UserHome from "./pages/users/UserHome"
@@ -17,6 +16,7 @@ import AdminLayout from "./components/layout/AdminLayout"
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import AdminUsers from "./pages/admin/AdminUsers"
 import AdminVideos from "./pages/admin/AdminVideos"
+import AdminCategories from "./pages/admin/AdminCategories"
 import AdminFeedback from "./pages/admin/AdminFeedback"
 import AdminComments from "./pages/admin/AdminComments"
 import UserProfile from "./pages/users/UserProfile"
@@ -41,7 +41,6 @@ createRoot(document.getElementById("root")!).render(
             <Route index element={<UserHome />} />
             <Route path="profile" element={<UserProfile />} />
             <Route path="upload" element={<Upload />} />
-            <Route path="myvideos" element={<MyVideos />} />
             <Route path="feedback" element={<UserFeedback />} />
           </Route>
 
@@ -57,6 +56,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="videos" element={<AdminVideos />} />
+          <Route path="categories" element={<AdminCategories />} />
           <Route path="feedbacks" element={<AdminFeedback />} />
           <Route path="comments" element={<AdminComments />} />
         </Route>

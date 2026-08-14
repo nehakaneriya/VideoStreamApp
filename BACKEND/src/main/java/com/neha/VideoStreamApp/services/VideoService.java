@@ -29,6 +29,7 @@ public interface VideoService {
             Instant createdAfter,
             Instant createdBefore,
             String contentType,
+            String category,
             String scrollId,
             int pageSize,
             String sortBy,
@@ -42,6 +43,9 @@ public interface VideoService {
 
     //delete video (Db+ folder)
     void delete(String videoId);
+
+    // Record a unique view — same user + same video sirf ek baar count hota hai
+    void incrementView(String videoId, UUID userId, String viewerIp);
 
     List<VideoDto> getVideosByUserEmail(String email);
 }
