@@ -14,6 +14,10 @@ public class AppConstants {
             "/api/v1/auth/admin/refresh",
             "/api/v1/auth/admin/logout",
 
+            // Email verification (OTP) — bina login ke accessible
+            "/api/v1/auth/verify-otp",
+            "/api/v1/auth/resend-otp",
+
             // OAuth2 callbacks (Spring Security handle karta hai)
             "/oauth2/**",
             "/login/oauth2/**",

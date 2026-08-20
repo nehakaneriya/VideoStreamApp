@@ -62,6 +62,23 @@ spring:
       cookie-same-site: strict        # Prod mein strict
       cookie-domain: ${JWT_COOKIE_DOMAIN}
 
+  # ── Mail (email verification / OTP) ─────────────────────────
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    from: ${MAIL_FROM}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
 # ── Swagger — PROD mein completely OFF ────────────────────────
 springdoc:
   api-docs:
@@ -73,6 +90,9 @@ springdoc:
 app:
   cors:
     front-end-url: ${FRONT_END_URL}
+  otp:
+    ttl-seconds: ${OTP_TTL_SECONDS:300}
+    resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN_SECONDS:60}
   auth:
     frontend:
       success-redirect: ${FRONT_END_SUCCESS_REDIRECT}

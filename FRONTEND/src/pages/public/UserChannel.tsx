@@ -90,13 +90,7 @@ export default function UserChannel() {
                   {channel?.videoCount === 1 ? "Video" : "Videos"}
                 </p>
               </div>
-              <div className="text-center">
-                <p className="text-xl font-bold flex items-center gap-1 justify-center">
-                  <Eye size={16} className="text-red-600" />
-                  {totalViews.toLocaleString()}
-                </p>
-                <p className="text-gray-500 text-xs uppercase tracking-wide">Views</p>
-              </div>
+             
             </div>
           </div>
         </div>
@@ -122,6 +116,7 @@ export default function UserChannel() {
                   category={video.category}
                   createdAt={video.createdAt}
                   viewCount={video.viewCount}
+                 
                 />
               ))}
             </div>

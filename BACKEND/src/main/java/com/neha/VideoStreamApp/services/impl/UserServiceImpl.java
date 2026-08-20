@@ -50,6 +50,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto createUser(UserDto userDto) {
+        return createUserInternal(userDto, true);
+    }
+
+    @Override
+    public UserDto createPendingUser(UserDto userDto) {
+        return createUserInternal(userDto, false);
+    }
+
+    private UserDto createUserInternal(UserDto userDto, boolean enable) {
         if(userDto.getEmail()==null || userDto.getEmail().isBlank()){
             throw new IllegalArgumentException("Email is Required");
         }
@@ -71,6 +80,9 @@ public class UserServiceImpl implements UserService {
         user.setPassword(
                 passwordEncoder.encode(userDto.getPassword())
         );
+        // Email verification ke liye account initially disabled rahega —
+        // OTP verify hone par enable=true ho jayega (AuthController.verifyOtp)
+        user.setEnable(enable);
         // assign the default role
         Role role = roleRepository
                 .findByName("ROLE_" + AppConstants.USER_ROLE)

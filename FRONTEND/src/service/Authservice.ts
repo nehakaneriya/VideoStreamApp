@@ -10,6 +10,18 @@ export const registerUser=async(signupData: RegisterData)=>{
     return response.data;
 };
 
+// Verify Email OTP
+export const verifyOtp = async (email: string, otp: string) => {
+    const response = await apiClient.post<{ message: string }>('/auth/verify-otp', { email, otp });
+    return response.data;
+};
+
+// Resend Email OTP (60 sec cooldown)
+export const resendOtp = async (email: string) => {
+    const response = await apiClient.post<{ message: string }>('/auth/resend-otp', { email });
+    return response.data;
+};
+
 // Login User (normal user)
 export const loginUser = async(loginData:LoginData)=>{
     const response = await apiClient.post<LoginResponseData>('/auth/login',loginData);  

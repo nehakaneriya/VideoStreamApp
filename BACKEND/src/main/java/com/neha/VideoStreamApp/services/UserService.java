@@ -8,6 +8,9 @@ public interface UserService {
     //create user
     UserDto createUser(UserDto userDto);
 
+    // Registration ke liye — user enable=false se banta hai, OTP verify ke baad enable hoga
+    UserDto createPendingUser(UserDto userDto);
+
     //get all users
     Iterable<UserDto> getAllUsers();
 

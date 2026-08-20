@@ -59,6 +59,23 @@ spring:
       cookie-same-site: lax
       cookie-domain: localhost
 
+  # ── Mail (email verification / OTP) ─────────────────────────
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    from: ${MAIL_FROM:no-reply@videostream.com}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
 # ── Swagger — QA mein ON (testing ke liye) ────────────────────
 springdoc:
   api-docs:
@@ -75,6 +92,9 @@ springdoc:
 app:
   cors:
     front-end-url: ${FRONT_END_URL:http://localhost:1304}
+  otp:
+    ttl-seconds: ${OTP_TTL_SECONDS:300}
+    resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN_SECONDS:60}
   auth:
     frontend:
       success-redirect: ${FRONT_END_SUCCESS_REDIRECT:http://localhost:1304/oauth/success}

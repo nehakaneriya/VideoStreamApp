@@ -6,6 +6,7 @@ import { ToastContainer } from "react-toastify"
 
 import Login from "./pages/public/Login"
 import Registration from "./pages/public/Registration"
+import EmailVerification from "./pages/public/EmailVerification"
 import WatchVideo from "./pages/public/WatchVideo"
 import UserChannel from "./pages/public/UserChannel"
 import Upload from "./pages/users/Upload"
@@ -36,6 +37,7 @@ createRoot(document.getElementById("root")!).render(
 
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Registration />} />
+          <Route path="verify-email" element={<EmailVerification />} />
           <Route path="watch/:videoId" element={<WatchVideo />} />
           <Route path="channel/:userId" element={<UserChannel />} />
 

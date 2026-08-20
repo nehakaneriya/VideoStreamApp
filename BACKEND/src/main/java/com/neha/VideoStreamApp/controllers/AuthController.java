@@ -1,17 +1,23 @@
 package com.neha.VideoStreamApp.controllers;
 
 import com.neha.VideoStreamApp.cache.JwtBlacklistService;
+import com.neha.VideoStreamApp.cache.UserCacheService;
 import com.neha.VideoStreamApp.dtos.request.LoginRequest;
 import com.neha.VideoStreamApp.dtos.request.RefreshTokenRequest;
+import com.neha.VideoStreamApp.dtos.request.ResendOtpRequest;
+import com.neha.VideoStreamApp.dtos.request.VerifyOtpRequest;
 import com.neha.VideoStreamApp.dtos.response.TokenResponse;
 import com.neha.VideoStreamApp.dtos.common.UserDto;
 import com.neha.VideoStreamApp.entities.RefreshToken;
 import com.neha.VideoStreamApp.entities.User;
+import com.neha.VideoStreamApp.exception.BadRequestException;
 import com.neha.VideoStreamApp.repositories.RefreshTokenRepository;
 import com.neha.VideoStreamApp.repositories.UserRepository;
 import com.neha.VideoStreamApp.security.CookieService;
 import com.neha.VideoStreamApp.security.JwtService;
 import com.neha.VideoStreamApp.services.AuthService;
+import com.neha.VideoStreamApp.services.MailService;
+import com.neha.VideoStreamApp.services.OtpService;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +37,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,6 +54,9 @@ public class AuthController {
     private final RefreshTokenRepository refreshTokenRepository;
     private final CookieService cookieService;
     private final JwtBlacklistService jwtBlacklistService;
+    private final OtpService otpService;
+    private final MailService mailService;
+    private final UserCacheService userCacheService;
 
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
@@ -54,7 +64,7 @@ public class AuthController {
         Authentication authenticate = authenticate(loginRequest);
         User user = userRepository.findByEmail(loginRequest.email()).orElseThrow(() -> new BadCredentialsException("Invalid Username or Password"));
         if (!user.isEnable()) {
-            throw new DisabledException("User is disabled");
+            throw new DisabledException("Please verify your email first");
 
         }
         String jti = UUID.randomUUID().toString();
@@ -87,6 +97,9 @@ public class AuthController {
 
             return authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password()));
 
+        } catch (DisabledException e) {
+            // Unverified (email OTP) ya admin-disabled user — clear message do
+            throw new DisabledException("Please verify your email first");
         } catch (Exception e) {
             throw new BadCredentialsException("Invalid Username or Password !!");
         }
@@ -227,6 +240,49 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<UserDto> registerUser(@RequestBody UserDto userDto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerUser(userDto));
+    }
+
+    // ===================== EMAIL VERIFICATION (OTP) =====================
+
+    // OTP ko verify karo — match hone par user enable=true
+    @PostMapping("/verify-otp")
+    public ResponseEntity<Map<String, Object>> verifyOtp(@RequestBody VerifyOtpRequest req) {
+        User user = userRepository.findByEmail(req.email())
+                .orElseThrow(() -> new BadRequestException("User not found with this email"));
+
+        if (user.isEnable()) {
+            throw new BadRequestException("Email is already verified");
+        }
+
+        if (!otpService.verify(req.email(), req.otp())) {
+            throw new BadRequestException("Invalid or expired OTP. Please try again or resend.");
+        }
+
+        user.setEnable(true);
+        userRepository.save(user);
+        userCacheService.evictUserCache(user.getId().toString());
+
+        return ResponseEntity.ok(Map.of("message", "Email verified successfully. You can now login."));
+    }
+
+    // Naya OTP bhejo (cooldown 60 sec ka hota hai)
+    @PostMapping("/resend-otp")
+    public ResponseEntity<Map<String, Object>> resendOtp(@RequestBody ResendOtpRequest req) {
+        User user = userRepository.findByEmail(req.email())
+                .orElseThrow(() -> new BadRequestException("User not found with this email"));
+
+        if (user.isEnable()) {
+            throw new BadRequestException("Email is already verified");
+        }
+
+        if (!otpService.canResend(req.email())) {
+            throw new BadRequestException("Please wait a moment before requesting a new OTP.");
+        }
+
+        String otp = otpService.generateAndStore(req.email());
+        mailService.sendOtpEmail(req.email(), user.getName(), otp);
+
+        return ResponseEntity.ok(Map.of("message", "A new OTP has been sent to your email."));
     }
 
     // Current logged-in user ki info return karo

@@ -6,6 +6,7 @@ import { toast } from "react-toastify"
 import { Spinner } from "@/components/ui/spinner"
 import useAuthStore from "@/auth/store"
 import Oauth2Buttons from "@/components/layout/Oauth2Buttons"
+import AuthBackground from "@/components/auth/AuthBackground"
 import axios from "axios"
 
 export default function Login() {
@@ -44,9 +45,13 @@ export default function Login() {
       navigate("/UserHome");
     } catch (error) {
       console.log("Login error:", error);
+      const serverMessage =
+        axios.isAxiosError(error) && error.response?.data?.message
+          ? error.response.data.message
+          : "";
       const message =
         axios.isAxiosError(error) && error.response?.status === 401
-          ? "Invalid credentials"
+          ? serverMessage || "Invalid credentials"
           : "Server issue, try again.";
       setError(message);
     } finally {
@@ -58,12 +63,11 @@ export default function Login() {
     "w-full pl-10 pr-4 py-3 text-sm bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-red-600/50 focus:border-red-600 outline-none transition-all placeholder:text-gray-700 text-white";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#09090b] text-white px-4 py-6 relative">
-      {/* Glow Effects */}
-      <div className="absolute top-10 -left-20 w-72 h-72 bg-red-600/15 rounded-full blur-[120px] -z-10"></div>
-      <div className="absolute bottom-10 -right-20 w-72 h-72 bg-red-600/10 rounded-full blur-[120px] -z-10"></div>
+    <div className="h-dvh overflow-hidden flex items-start justify-center text-white px-4 relative">
+      {/* Animated gradient background (flat black ki jagah) */}
+      <AuthBackground />
 
-      <div className="bg-[#121214] p-5 sm:p-6 rounded-3xl shadow-2xl w-full max-w-md border border-white/10 animate-fade-in-up">
+      <div className="bg-[#121214]/80 backdrop-blur-xl p-6 sm:p-7 rounded-3xl shadow-2xl w-full max-w-xl border border-white/10 animate-fade-in-up mt-[5vh]">
 
         {/* Header */}
         <div className="mb-4 text-center">
@@ -128,7 +132,20 @@ export default function Login() {
           </button>
         </form>
 
-        {error && <p className="text-red-500 text-center text-sm mt-3 font-medium">⚠️ {error}</p>}
+        {error && (
+          <div className="text-center text-sm mt-3 font-medium">
+            <p className="text-red-500">⚠️ {error}</p>
+            {error.toLowerCase().includes("verify") && (
+              <button
+                type="button"
+                onClick={() => navigate("/verify-email", { state: { email: loginData.email } })}
+                className="mt-1 text-xs text-red-500 hover:underline cursor-pointer"
+              >
+                Verify your email
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Social Login Divider */}
         <Oauth2Buttons />
