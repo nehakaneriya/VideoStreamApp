@@ -32,4 +32,7 @@ public class CommentDto {
     // Is comment ke replies (sirf top-level comments ke liye bhara jata hai)
     @Builder.Default
     private List<CommentDto> replies = new ArrayList<>();
+
+    // Admin dwara hide kiya gaya hai ya nahi
+    private boolean hidden;
 }

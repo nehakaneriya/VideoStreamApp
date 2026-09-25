@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Mail, ShieldCheck, RefreshCw, X } from "lucide-react";
-import { verifyOtp, resendOtp } from "@/service/Authservice";
+import { verifyOtp, resendOtp, cancelRegistration } from "@/service/Authservice";
 import { toast } from "react-toastify";
 import { Spinner } from "@/components/ui/spinner";
 import axios from "axios";
@@ -17,6 +17,7 @@ export default function OtpModal({ email, onSuccess, onClose }: OtpModalProps) {
   const [otp, setOtp] = useState("");
   const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
   const [loading, setLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [expiry, setExpiry] = useState(OTP_TTL_SECONDS);
 
@@ -127,6 +128,22 @@ export default function OtpModal({ email, onSuccess, onClose }: OtpModalProps) {
     }
   };
 
+  const handleCancel = async () => {
+    if (cancelling || loading) return;
+    try {
+      setCancelling(true);
+      if (email) {
+        await cancelRegistration(email);
+      }
+      toast.info("Registration cancelled");
+    } catch {
+      toast.info("Registration cancelled");
+    } finally {
+      setCancelling(false);
+      onClose();
+    }
+  };
+
   const inputBase =
     "w-full h-14 text-center text-2xl font-black bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-red-600/50 focus:border-red-600 outline-none transition-all text-white";
 
@@ -138,12 +155,13 @@ export default function OtpModal({ email, onSuccess, onClose }: OtpModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-end -mb-2">
-          {/* X dabane par modal band — user wapas register page pe (login nahi) */}
+          {/* X dabane par registration cancel aur modal band */}
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCancel}
+            disabled={cancelling}
             aria-label="Close"
-            className="text-gray-600 hover:text-white transition-colors cursor-pointer"
+            className="text-gray-600 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
           >
             <X size={16} />
           </button>
@@ -195,21 +213,30 @@ export default function OtpModal({ email, onSuccess, onClose }: OtpModalProps) {
 
           <button
             type="submit"
-            disabled={loading || expired}
+            disabled={loading || expired || cancelling}
             className="w-full bg-red-600 cursor-pointer hover:bg-red-700 py-3 rounded-xl text-base font-bold transition-all shadow-lg shadow-red-600/30 active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2"
           >
             {loading ? <Spinner /> : expired ? "OTP Expired — Resend" : <>Verify &amp; Continue</>}
           </button>
         </form>
 
-        <div className="flex items-center justify-center gap-2 mt-4">
+        <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-white/5">
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={cancelling || loading}
+            className="text-xs text-gray-500 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {cancelling ? "Cancelling..." : "Cancel Registration"}
+          </button>
+
           <button
             type="button"
             onClick={handleResend}
-            disabled={cooldown > 0}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={cooldown > 0 || cancelling}
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <RefreshCw size={14} className={cooldown > 0 ? "animate-spin" : ""} />
+            <RefreshCw size={13} className={cooldown > 0 ? "animate-spin" : ""} />
             {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend OTP"}
           </button>
         </div>

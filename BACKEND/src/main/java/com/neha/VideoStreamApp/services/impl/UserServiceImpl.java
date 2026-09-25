@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
@@ -69,8 +70,22 @@ public class UserServiceImpl implements UserService {
         // Strong password enforcement (registration)
         validatePassword(userDto.getPassword());
 
-        if (userRepository.existsByEmail(userDto.getEmail())){
-            throw new IllegalArgumentException("Email already exists");
+        String cleanEmail = userDto.getEmail().trim();
+        Optional<User> existingUserOpt = userRepository.findByEmail(cleanEmail)
+                .or(() -> userRepository.findByEmail(cleanEmail.toLowerCase()));
+
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+            if (existingUser.isEnable()) {
+                throw new IllegalArgumentException("Email already exists");
+            }
+            // If the user was pending verification, update details with new registration info
+            existingUser.setName(userDto.getName());
+            existingUser.setPassword(passwordEncoder.encode(userDto.getPassword()));
+            existingUser.setProvider(userDto.getProvider() != null ? userDto.getProvider() : Provider.LOCAL);
+            existingUser.setEnable(enable);
+            User savedUser = userRepository.save(existingUser);
+            return modelMapper.map(savedUser, UserDto.class);
         }
 
 
@@ -126,26 +141,18 @@ public class UserServiceImpl implements UserService {
         User existingUser=userRepository
                 .findById(uId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with the given id"));
-        //we are not going to change email id for this project
-        if(userDto.getName()!=null)existingUser.setName(userDto.getName());
-        // NOTE: provider yahan kabhi set nahi karte — UserDto mein provider ka
-        // default LOCAL hota hai (UserDto.java), isliye agar profile update mein
-        // {name, password} hi bheja jaye to ye provider ko LOCAL me override kar deta tha.
-        // User ka provider (LOCAL/GOOGLE/GITHUB) fixed rehta hai, profile edit se change nahi hota.
 
-        // Password update — sirf tab jab explicitly bheja gaya ho
+        // Name update
+        if (userDto.getName() != null && !userDto.getName().isBlank()) {
+            existingUser.setName(userDto.getName().trim());
+        }
+
         if(userDto.getPassword()!=null && !userDto.getPassword().isBlank())
             existingUser.setPassword(passwordEncoder.encode(userDto.getPassword()));
 
-        // enable field — sirf ADMIN change kar sakta hai, profile update mein ignore karo
-        // (UserDto mein default true hai, isliye blindly set karna dangerous hai)
-        // UserServiceImpl caller ke paas context nahi — isliye yahan set nahi karte
-        // AdminServiceImpl alag se handle karta hai
         existingUser.setUpdatedAt(Instant.now());
         User updatedUser = userRepository.save(existingUser);
 
-        // Profile update hone par Redis user-cache bhi refresh karo —
-        // nahi to JWT auth principal 60 min tak purana naam/roles rakhega
         userCacheService.evictUserCache(updatedUser.getId().toString());
 
         return modelMapper.map(updatedUser,UserDto.class);

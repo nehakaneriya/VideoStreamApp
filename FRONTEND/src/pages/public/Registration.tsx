@@ -1,6 +1,16 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { Mail, Lock, User, ArrowRight, Eye, EyeOff, CheckCircle2, Circle } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  Circle,
+} from "lucide-react";
+
 import type RegisterData from "@/models/RegisterData";
 import { registerUser } from "@/service/Authservice";
 import { toast } from "react-toastify";
@@ -23,34 +33,125 @@ export default function Registration() {
   const [pwdFocused, setPwdFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
+
   const navigate = useNavigate();
 
+  // =========================
+  // PASSWORD REQUIREMENTS
+  // =========================
   const requirements = (pw: string) => [
-    { ok: pw.length >= 6, label: "Minimum 6 characters" },
-    { ok: /[A-Za-z]/.test(pw), label: "At least one letter" },
-    { ok: /\d/.test(pw), label: "At least one number" },
-    { ok: /[^A-Za-z0-9]/.test(pw), label: "At least one special symbol (@#$%)" },
+    {
+      ok: pw.length >= 6,
+      label: "Minimum 6 characters",
+    },
+    {
+      ok: /[A-Za-z]/.test(pw),
+      label: "At least one letter",
+    },
+    {
+      ok: /\d/.test(pw),
+      label: "At least one number",
+    },
+    {
+      ok: /[^A-Za-z0-9]/.test(pw),
+      label: "At least one special symbol (@#$%)",
+    },
   ];
 
+  // =========================
+  // PASSWORD VALIDATION
+  // =========================
   const validatePassword = (pw: string): string | null => {
-    if (pw.length < 6) return "At least 6 characters";
-    if (!/[A-Za-z]/.test(pw)) return "At least one letter";
-    if (!/\d/.test(pw)) return "At least one number";
-    if (!/[^A-Za-z0-9]/.test(pw)) return "At least one special symbol (e.g. @#$%)";
+    if (pw.length < 6) {
+      return "At least 6 characters";
+    }
+
+    if (!/[A-Za-z]/.test(pw)) {
+      return "At least one letter";
+    }
+
+    if (!/\d/.test(pw)) {
+      return "At least one number";
+    }
+
+    if (!/[^A-Za-z0-9]/.test(pw)) {
+      return "At least one special symbol (e.g. @#$%)";
+    }
+
     return null;
   };
 
-  const passwordError = data.password ? validatePassword(data.password) : null;
+  // =========================
+  // FIXED EMAIL VALIDATION
+  // =========================
+  const validateEmail = (email: string): string | null => {
+    const value = email.trim();
 
-  // Requirements panel sirf tab dikhao jab password field pe focus ho (click ho),
-  // ya jab koi error ho ya password me kuch likha ho aur sab requirements poori na hui ho.
+    if (!value) {
+      return "Email address is required";
+    }
+
+    if (/\s/.test(value)) {
+      return "Email address must not contain spaces";
+    }
+
+    // Direct check for '@' symbol
+    if (!value.includes("@")) {
+      return "Please enter a valid email address (missing '@')";
+    }
+
+    // Standard Strict Email Regex (Requires standard name@domain.extension format)
+    const strictEmailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if (!strictEmailRegex.test(value)) {
+      return "Please enter a valid email address (e.g. name@example.com)";
+    }
+
+    const [localPart, domain] = value.split("@");
+
+    if (!localPart || localPart.length > 64) {
+      return "Please enter a valid email address";
+    }
+
+    if (!domain || domain.length > 253) {
+      return "Please enter a valid email address";
+    }
+
+    const domainParts = domain.split(".");
+    const tld = domainParts[domainParts.length - 1];
+
+    if (!/^[A-Za-z]{2,63}$/.test(tld)) {
+      return "Please enter a valid domain extension (e.g. .com, .in)";
+    }
+
+    return null;
+  };
+
+  const passwordError = data.password
+    ? validatePassword(data.password)
+    : null;
+
   const showRequirements = pwdFocused || !!passwordError;
 
+  // =========================
+  // REGISTER
+  // =========================
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!data.name || !data.email || !data.password || !confirmPassword) {
+    if (
+      !data.name.trim() ||
+      !data.email.trim() ||
+      !data.password ||
+      !confirmPassword
+    ) {
       toast.error("Please fill in all fields ❌");
+      return;
+    }
+
+    const emailError = validateEmail(data.email);
+    if (emailError) {
+      toast.error(emailError);
       return;
     }
 
@@ -67,15 +168,25 @@ export default function Registration() {
 
     try {
       setLoading(true);
-      await registerUser(data);
-      toast.success("Registration Successful! Check your email for OTP 📧");
-      // OTP modal register page ke upar khul jayega — background locked rahega
+
+      await registerUser({
+        ...data,
+        name: data.name.trim(),
+        email: data.email.trim(),
+      });
+
+      toast.success(
+        "Registration Successful! Check your email for OTP 📧"
+      );
+
       setShowOtp(true);
     } catch (error) {
       const message =
-        axios.isAxiosError(error) && error.response?.data?.message
+        axios.isAxiosError(error) &&
+        error.response?.data?.message
           ? error.response.data.message
           : "Registration Failed ❌";
+
       toast.error(message);
     } finally {
       setLoading(false);
@@ -87,65 +198,90 @@ export default function Registration() {
 
   return (
     <div className="h-dvh overflow-hidden flex items-start justify-center text-white px-4 relative">
-
-      {/* Animated gradient background (flat black ki jagah) */}
       <AuthBackground />
 
       <div className="bg-[#121214]/80 backdrop-blur-xl p-6 sm:p-7 rounded-3xl shadow-2xl w-full max-w-xl border border-white/10 animate-fade-in-up mt-[8vh]">
-
         {/* Header */}
         <div className="mb-3 text-center">
           <h1 className="text-2xl font-black tracking-tighter">
             Stream<span className="text-red-600">Hub</span>
           </h1>
+
           <p className="text-gray-500 text-xs mt-0.5 uppercase tracking-widest font-medium">
             Create your account
           </p>
         </div>
 
-        <form className="space-y-2.5" onSubmit={handleRegister}>
-
-          {/* Name */}
+        <form className="space-y-2.5" onSubmit={handleRegister} noValidate>
+          {/* NAME */}
           <div>
             <div className="relative">
-              <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+              <User
+                size={15}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500"
+              />
+
               <input
                 type="text"
                 value={data.name}
-                onChange={(e) => setData({ ...data, name: e.target.value })}
+                onChange={(e) =>
+                  setData({
+                    ...data,
+                    name: e.target.value,
+                  })
+                }
                 className={inputBase}
                 placeholder="Full name"
               />
             </div>
           </div>
 
-          {/* Email */}
+          {/* EMAIL */}
           <div>
             <div className="relative">
-              <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+              <Mail
+                size={15}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500"
+              />
+
               <input
                 type="email"
                 value={data.email}
-                onChange={(e) => setData({ ...data, email: e.target.value })}
+                onChange={(e) =>
+                  setData({
+                    ...data,
+                    email: e.target.value,
+                  })
+                }
                 className={inputBase}
                 placeholder="Email address"
               />
             </div>
           </div>
 
-          {/* Password */}
+          {/* PASSWORD */}
           <div>
             <div className="relative">
-              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+              <Lock
+                size={15}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500"
+              />
+
               <input
                 type={showPassword ? "text" : "password"}
                 value={data.password}
-                onChange={(e) => setData({ ...data, password: e.target.value })}
+                onChange={(e) =>
+                  setData({
+                    ...data,
+                    password: e.target.value,
+                  })
+                }
                 onFocus={() => setPwdFocused(true)}
                 onBlur={() => setPwdFocused(false)}
                 className={`${inputBase} pr-10`}
                 placeholder="Password"
               />
+
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -156,7 +292,7 @@ export default function Registration() {
               </button>
             </div>
 
-            {/* Requirements — password pe click/type karne par hi khulti hai */}
+            {/* PASSWORD REQUIREMENTS */}
             {showRequirements && (
               <div className="mt-1 rounded-lg border border-gray-700/60 bg-[#0f0f0f]/60 p-2 animate-fade-in-up">
                 {requirements(data.password).map((req) => (
@@ -167,10 +303,17 @@ export default function Registration() {
                     }`}
                   >
                     {req.ok ? (
-                      <CheckCircle2 size={12} className="text-green-500 shrink-0" />
+                      <CheckCircle2
+                        size={12}
+                        className="text-green-500 shrink-0"
+                      />
                     ) : (
-                      <Circle size={12} className="text-gray-500 shrink-0" />
+                      <Circle
+                        size={12}
+                        className="text-gray-500 shrink-0"
+                      />
                     )}
+
                     {req.label}
                   </div>
                 ))}
@@ -178,10 +321,14 @@ export default function Registration() {
             )}
           </div>
 
-          {/* Confirm Password */}
+          {/* CONFIRM PASSWORD */}
           <div>
             <div className="relative">
-              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+              <Lock
+                size={15}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500"
+              />
+
               <input
                 type={showConfirm ? "text" : "password"}
                 value={confirmPassword}
@@ -189,6 +336,7 @@ export default function Registration() {
                 className={`${inputBase} pr-10`}
                 placeholder="Confirm password"
               />
+
               <button
                 type="button"
                 onClick={() => setShowConfirm(!showConfirm)}
@@ -198,27 +346,38 @@ export default function Registration() {
                 {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+
             {confirmPassword && data.password !== confirmPassword && (
-              <p className="text-red-500 text-[11px] mt-1 px-1">⚠️ Passwords do not match</p>
+              <p className="text-red-500 text-[11px] mt-1 px-1">
+                ⚠️ Passwords do not match
+              </p>
             )}
           </div>
 
+          {/* REGISTER BUTTON */}
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-red-600 cursor-pointer hover:bg-red-700 py-2.5 rounded-xl text-base font-bold transition-all shadow-lg shadow-red-600/30 active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2 group"
           >
-            {loading ? <Spinner /> : (
+            {loading ? (
+              <Spinner />
+            ) : (
               <>
-                Register <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                Register
+                <ArrowRight
+                  size={18}
+                  className="transition-transform group-hover:translate-x-1"
+                />
               </>
             )}
           </button>
         </form>
 
-        {/* OAuth Section */}
+        {/* OAUTH */}
         <Oauth2Buttons />
 
+        {/* LOGIN */}
         <p className="text-center text-gray-500 mt-3 text-sm">
           Already have an account?{" "}
           <Link
@@ -230,7 +389,7 @@ export default function Registration() {
         </p>
       </div>
 
-      {/* OTP modal — register success ke baad, background locked */}
+      {/* OTP MODAL */}
       {showOtp && (
         <OtpModal
           email={data.email}

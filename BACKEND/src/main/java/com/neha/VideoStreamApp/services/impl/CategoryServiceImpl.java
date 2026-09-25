@@ -73,6 +73,52 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    public CategoryDto updateCategory(String id, String name, String description) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        if (!StringUtils.hasText(name)) {
+            throw new BadRequestException("Category name is required");
+        }
+
+        String oldSlug = category.getSlug();
+        String newSlug = toSlug(name);
+
+        // If name changed
+        if (!category.getName().trim().equalsIgnoreCase(name.trim())) {
+            // 'other' reserved category hai — iska naam modify nahi ho sakta
+            if (DEFAULT_CATEGORY_SLUG.equalsIgnoreCase(oldSlug)) {
+                throw new BadRequestException("The 'Other' category name cannot be modified");
+            }
+            if (DEFAULT_CATEGORY_SLUG.equalsIgnoreCase(newSlug)) {
+                throw new BadRequestException("'Other' is a reserved category");
+            }
+
+            if (!newSlug.equalsIgnoreCase(oldSlug) && categoryRepository.existsBySlug(newSlug)) {
+                throw new DuplicateResourceException("Category '" + name + "' already exists");
+            }
+
+            category.setName(name.trim());
+            category.setSlug(newSlug);
+
+            // Existing videos ki category ko naye slug par migrate karo
+            if (!oldSlug.equalsIgnoreCase(newSlug)) {
+                videoRepository.moveCategory(oldSlug, newSlug);
+            }
+        }
+
+        category.setDescription(description != null ? description.trim() : null);
+
+        Category updated = categoryRepository.save(category);
+
+        // Feed cache clear karo taaki updated category filter chips pe reflect ho
+        videoCacheService.evictScrollCache();
+
+        return mapToDto(updated);
+    }
+
+    @Override
+    @Transactional
     public Map<String, Object> deleteCategory(String id) {
 
         Category category = categoryRepository.findById(id)

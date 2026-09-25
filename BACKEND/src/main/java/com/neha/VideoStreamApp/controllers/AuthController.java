@@ -242,6 +242,24 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerUser(userDto));
     }
 
+    // Cancel Registration — OTP dale bina cancel karne par unverified pending user delete ho jaye
+    @PostMapping("/cancel-registration")
+    public ResponseEntity<Map<String, Object>> cancelRegistration(
+            @RequestBody(required = false) Map<String, String> body,
+            @RequestParam(required = false) String email
+    ) {
+        String targetEmail = email;
+        if ((targetEmail == null || targetEmail.isBlank()) && body != null) {
+            targetEmail = body.get("email");
+        }
+        if (targetEmail == null || targetEmail.isBlank()) {
+            throw new BadRequestException("Email is required to cancel registration");
+        }
+
+        authService.cancelRegistration(targetEmail);
+        return ResponseEntity.ok(Map.of("message", "Registration cancelled successfully"));
+    }
+
     // ===================== EMAIL VERIFICATION (OTP) =====================
 
     // OTP ko verify karo — match hone par user enable=true

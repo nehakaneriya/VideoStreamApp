@@ -7,9 +7,10 @@ import { getAllCategories } from "@/service/CategoryService";
 import type { Category } from "@/models/Category";
 import { CloudUpload, Film, Tag, FileText, X, Loader2, CheckCircle2, Clapperboard } from "lucide-react";
 
-// Backend/Nginx limit se match — VideoStreamApp mein max upload size 500MB hai
-const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024;
-const MAX_FILE_SIZE_LABEL = "500MB";
+
+// Backend/Nginx limit se match — VideoStreamApp mein max upload size 200MB hai
+const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024;
+const MAX_FILE_SIZE_LABEL = "200MB";
 
 const formatFileSize = (bytes: number) => {
   if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
@@ -48,7 +49,11 @@ export default function VideoUpload() {
   const pickFile = (file: File | undefined | null) => {
     if (!file) return;
 
-    // Size check — 500MB se badi file ko upload shuru karne se pehle hi reject karo
+    if (!file.type.startsWith("video/")) {
+    toast.error("Only video files are allowed!");
+    return;
+  }
+    // Size check — 200MB se badi file ko upload shuru karne se pehle hi reject karo
     if (file.size > MAX_FILE_SIZE_BYTES) {
       toast.error(`File too large! Max allowed size is ${MAX_FILE_SIZE_LABEL}.`);
       return;
@@ -205,6 +210,7 @@ export default function VideoUpload() {
           }`}
         >
           <input
+            id="video-file-input"
             ref={fileInputRef}
             type="file"
             accept="video/*"
@@ -259,10 +265,11 @@ export default function VideoUpload() {
                   <p className="text-white font-semibold text-base">
                     {dragging ? "Drop it here!" : "Drag & drop your video here"}
                   </p>
-                  <p className="text-gray-500 text-xs mt-1">Max file size: 500MB</p>
+                  <p className="text-gray-500 text-xs mt-1">Max file size: 200MB</p>
                 </div>
               </div>
               <label
+                htmlFor="video-file-input"
                 onClick={(e) => e.stopPropagation()}
                 className="shrink-0 cursor-pointer inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-red-600/25 hover:shadow-red-600/40 active:scale-95"
               >

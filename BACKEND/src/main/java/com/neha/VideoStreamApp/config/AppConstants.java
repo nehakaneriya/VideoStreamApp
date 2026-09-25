@@ -17,6 +17,7 @@ public class AppConstants {
             // Email verification (OTP) — bina login ke accessible
             "/api/v1/auth/verify-otp",
             "/api/v1/auth/resend-otp",
+            "/api/v1/auth/cancel-registration",
 
             // OAuth2 callbacks (Spring Security handle karta hai)
             "/oauth2/**",

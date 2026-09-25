@@ -30,6 +30,16 @@ public class AdminCategoryController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    // Admin: category edit / update karo
+    @PutMapping("/{id}")
+    public ResponseEntity<CategoryDto> updateCategory(
+            @PathVariable String id,
+            @RequestBody CategoryRequest request
+    ) {
+        CategoryDto updated = categoryService.updateCategory(id, request.getName(), request.getDescription());
+        return ResponseEntity.ok(updated);
+    }
+
     // Admin: category delete karo — uske videos 'other' me move ho jayenge
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> deleteCategory(@PathVariable String id) {

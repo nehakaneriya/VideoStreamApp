@@ -22,6 +22,12 @@ export const resendOtp = async (email: string) => {
     return response.data;
 };
 
+// Cancel Registration (bina OTP dale cancel karne par pending unverified user DB se delete ho jaye)
+export const cancelRegistration = async (email: string) => {
+    const response = await apiClient.post<{ message: string }>('/auth/cancel-registration', { email });
+    return response.data;
+};
+
 // Login User (normal user)
 export const loginUser = async(loginData:LoginData)=>{
     const response = await apiClient.post<LoginResponseData>('/auth/login',loginData);  

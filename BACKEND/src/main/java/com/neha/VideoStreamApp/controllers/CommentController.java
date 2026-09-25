@@ -69,4 +69,44 @@ public class CommentController {
 
         return ResponseEntity.ok("Comment deleted successfully");
     }
+
+    // ── ADMIN: Comment hide karo (delete nahi, bas public view se hatao) ──
+    // PATCH /api/v1/admin/comments/{commentId}/hide
+    @PatchMapping("/api/v1/admin/comments/{commentId}/hide")
+    public ResponseEntity<?> hideComment(
+            @PathVariable String commentId,
+            Authentication authentication) {
+
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(role -> role.equals("ROLE_" + AppConstants.ADMIN_ROLE));
+        if (!isAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Admin access required");
+        }
+
+        return ResponseEntity.ok(commentService.hideComment(commentId));
+    }
+
+    // ── ADMIN: Hidden comment wapas unhide karo ────────────────────────────
+    // PATCH /api/v1/admin/comments/{commentId}/unhide
+    @PatchMapping("/api/v1/admin/comments/{commentId}/unhide")
+    public ResponseEntity<?> unhideComment(
+            @PathVariable String commentId,
+            Authentication authentication) {
+
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(role -> role.equals("ROLE_" + AppConstants.ADMIN_ROLE));
+        if (!isAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Admin access required");
+        }
+
+        return ResponseEntity.ok(commentService.unhideComment(commentId));
+    }
 }

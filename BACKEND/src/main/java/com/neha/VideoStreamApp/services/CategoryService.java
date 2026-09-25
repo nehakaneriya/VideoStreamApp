@@ -11,5 +11,7 @@ public interface CategoryService {
 
     CategoryDto createCategory(String name, String description);
 
+    CategoryDto updateCategory(String id, String name, String description);
+
     Map<String, Object> deleteCategory(String id);
 }

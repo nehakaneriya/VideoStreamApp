@@ -38,3 +38,15 @@ export const getAllCommentsAdmin = async (): Promise<Comment[]> => {
 export const deleteCommentAdmin = async (commentId: string): Promise<void> => {
     await apiClient.delete(`/admin/comments/${commentId}`);
 };
+
+// Admin: comment ko hide karo (public view se hatao, delete nahi hoga)
+export const hideCommentAdmin = async (commentId: string): Promise<Comment> => {
+    const response = await apiClient.patch<Comment>(`/admin/comments/${commentId}/hide`);
+    return response.data;
+};
+
+// Admin: hide kiye gaye comment ko wapas dikhao
+export const unhideCommentAdmin = async (commentId: string): Promise<Comment> => {
+    const response = await apiClient.patch<Comment>(`/admin/comments/${commentId}/unhide`);
+    return response.data;
+};

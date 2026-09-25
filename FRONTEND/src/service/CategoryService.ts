@@ -13,6 +13,15 @@ export const createCategory = async (data: { name: string; description?: string 
     return response.data;
 };
 
+// Admin: category edit karo
+export const updateCategory = async (
+    id: string,
+    data: { name: string; description?: string }
+): Promise<Category> => {
+    const response = await apiClient.put<Category>(`/admin/categories/${id}`, data);
+    return response.data;
+};
+
 // Admin: category delete karo — uske videos 'other' me move ho jayenge
 export const deleteCategory = async (id: string): Promise<{ message: string; movedVideos: number }> => {
     const response = await apiClient.delete<{ message: string; movedVideos: number }>(`/admin/categories/${id}`);

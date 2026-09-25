@@ -55,7 +55,7 @@ export const deleteVideo = async (videoId: string) => {
 
 export const updateVideo = async (
     videoId: string,
-    data: { title: string; description?: string }
+    data: { title: string; description?: string; category?: string }
 ): Promise<Video> => {
     // Video title/description update karne ke liye
     const response = await apiClient.put(`/videos/${videoId}`, data);

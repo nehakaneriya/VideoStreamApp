@@ -9,4 +9,5 @@ export interface Comment {
     userEmail?: string;
     parentCommentId?: string | null;
     replies?: Comment[];
+    hidden?: boolean;          // Admin ne hide kiya hai
 }

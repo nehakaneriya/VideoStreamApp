@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Tag, Trash2, Loader2, Plus } from "lucide-react";
-import { getAllCategories, createCategory, deleteCategory } from "@/service/CategoryService";
+import { Tag, Trash2, Loader2, Plus, Pencil, X } from "lucide-react";
+import { getAllCategories, createCategory, updateCategory, deleteCategory } from "@/service/CategoryService";
 import type { Category } from "@/models/Category";
 import { toast } from "react-toastify";
 
@@ -11,6 +11,12 @@ export default function AdminCategories() {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
+
+    // Edit Modal States
+    const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+    const [editName, setEditName] = useState("");
+    const [editDescription, setEditDescription] = useState("");
+    const [updating, setUpdating] = useState(false);
 
     const loadCategories = async () => {
         try {
@@ -70,6 +76,44 @@ export default function AdminCategories() {
             toast.error(msg);
         } finally {
             setDeletingId(null);
+        }
+    };
+
+    const handleOpenEdit = (cat: Category) => {
+        setEditingCategory(cat);
+        setEditName(cat.name);
+        setEditDescription(cat.description || "");
+    };
+
+    const handleCloseEdit = () => {
+        setEditingCategory(null);
+        setEditName("");
+        setEditDescription("");
+    };
+
+    const handleUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingCategory) return;
+        if (!editName.trim()) {
+            toast.error("Category name is required");
+            return;
+        }
+        try {
+            setUpdating(true);
+            await updateCategory(editingCategory.id, {
+                name: editName.trim(),
+                description: editDescription.trim() || undefined,
+            });
+            toast.success("Category updated successfully");
+            handleCloseEdit();
+            loadCategories();
+        } catch (err) {
+            const msg =
+                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+                "Failed to update category";
+            toast.error(msg);
+        } finally {
+            setUpdating(false);
         }
     };
 
@@ -176,22 +220,110 @@ export default function AdminCategories() {
                                         {cat.description || "—"}
                                     </td>
                                     <td className="p-4">
-                                        <button
+                                        <div className="flex items-center gap-2">
+                                            {/* Edit */}
+                                            <button
+                                            onClick={() => handleOpenEdit(cat)}
+                                            className="flex items-center justify-center gap-1.5 w-[85px] py-2 bg-gray-700/40 hover:bg-red-600 text-gray-300 hover:text-white text-xs font-medium rounded-lg border border-gray-700 hover:border-red-600 transition cursor-pointer"
+                                            >
+                                            <Pencil size={13} />
+                                            Edit
+                                            </button>
+
+                                            {/* Delete */}
+                                            <button
                                             onClick={() => handleDelete(cat)}
                                             disabled={deletingId === cat.id}
-                                            className="flex items-center gap-1 px-3 py-1 bg-red-600/10 text-red-500 rounded hover:bg-red-600 hover:text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition border border-red-600/20"
-                                        >
-                                            {deletingId === cat.id
-                                                ? <Loader2 size={14} className="animate-spin" />
-                                                : <Trash2 size={14} />
-                                            }
-                                            Delete
-                                        </button>
+                                            className="flex items-center justify-center gap-1.5 w-[85px] py-2 bg-gray-700/40 hover:bg-red-600 text-gray-300 hover:text-white text-xs font-medium rounded-lg border border-gray-700 hover:border-red-600 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                                            >
+                                            {deletingId === cat.id ? (
+                                                <Loader2 size={13} className="animate-spin" />
+                                            ) : (
+                                                <Trash2 size={13} />
+                                            )}
+                                            {deletingId === cat.id ? "..." : "Delete"}
+                                            </button>                                                                       
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Edit Category Modal */}
+            {editingCategory && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+                    <div
+                        className="w-full max-w-lg bg-[#181818] border border-gray-800 rounded-2xl shadow-2xl p-6 animate-fade-in-up"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between pb-3 border-b border-gray-800 mb-4">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                            <Pencil size={18} className="text-red-500" />
+                                Edit Category
+                            </h2>
+                            <button
+                                onClick={handleCloseEdit}
+                                className="text-gray-400 hover:text-white transition cursor-pointer p-1"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUpdate} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                                    Category Name {editingCategory.slug === "other" && <span className="text-yellow-500 text-xs">(Reserved category name cannot be modified)</span>}
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    disabled={editingCategory.slug === "other"}
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                    className="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                    placeholder="Category name"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                                    Description
+                                </label>
+                                <textarea
+                                    rows={3}
+                                    value={editDescription}
+                                    onChange={(e) => setEditDescription(e.target.value)}
+                                    className="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-white placeholder-gray-600 resize-none"
+                                    placeholder="Category description (optional)"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-3 border-t border-gray-800">
+                                <button
+                                    type="button"
+                                    onClick={handleCloseEdit}
+                                    disabled={updating}
+                                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm font-medium transition cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={updating}
+                                    className="flex items-center gap-2 px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50 cursor-pointer"
+                                    >
+                                    {updating && (
+                                        <Loader2 size={15} className="animate-spin" />
+                                    )}
+
+                                    {updating ? "Saving..." : "Save Changes"}
+                                    </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>

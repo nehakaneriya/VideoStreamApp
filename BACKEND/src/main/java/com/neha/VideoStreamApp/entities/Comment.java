@@ -43,4 +43,9 @@ public class Comment extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> replies = new ArrayList<>();
+
+    // Admin hide feature — true hone par comment public view me nahi dikhega
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean hidden = false;
 }

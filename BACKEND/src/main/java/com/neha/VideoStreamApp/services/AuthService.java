@@ -6,8 +6,5 @@ public interface AuthService {
 
     UserDto registerUser(UserDto userDto);
 
-    //login User
-
-
-
+    void cancelRegistration(String email);
 }

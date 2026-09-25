@@ -14,8 +14,8 @@ spring:
   # File upload size limits
   servlet:
     multipart:
-      max-file-size: 500MB
-      max-request-size: 500MB
+      max-file-size: 100MB
+      max-request-size: 100MB
 
 # Video file storage paths
 files:

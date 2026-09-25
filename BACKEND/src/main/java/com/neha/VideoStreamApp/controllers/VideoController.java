@@ -361,8 +361,14 @@ public class VideoController {
 
         String title = updates != null ? updates.get("title") : null;
         String description = updates != null ? updates.get("description") : null;
+        String category = updates != null ? updates.get("category") : null;
 
-        VideoDto updatedVideo = videoService.update(videoId, title, description);
+        VideoDto updatedVideo = videoService.update(
+                videoId,
+                title,
+                description,
+                category
+        );
         return ResponseEntity.ok(updatedVideo);
     }
 

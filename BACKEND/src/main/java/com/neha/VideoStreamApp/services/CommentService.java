@@ -22,4 +22,10 @@ public interface CommentService {
 
     // Admin — kisi bhi comment ko force delete kare
     void adminDeleteComment(String commentId);
+
+    // Admin — comment ko hide kare (public view se hatao, DB me rakho)
+    CommentDto hideComment(String commentId);
+
+    // Admin — hidden comment ko wapas unhide kare
+    CommentDto unhideComment(String commentId);
 }

@@ -196,7 +196,7 @@ export default function UserHome() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setEditVideo(video)}
-                        className="flex items-center gap-1 px-3 py-1 bg-gray-700/40 hover:bg-red-600 text-gray-300 hover:text-white text-xs font-medium rounded-lg border border-gray-700 hover:border-red-600 transition cursor-pointer"
+                        className="inline-flex items-center justify-center gap-1 min-w-[85px] px-3 py-2 bg-[#222] hover:bg-red-600 text-gray-300 hover:text-white text-sm font-medium rounded-lg border border-gray-600 hover:border-red-600 transition cursor-pointer"
                       >
                         <Pencil size={12} />
                         Edit
@@ -224,6 +224,7 @@ export default function UserHome() {
           videoId={editVideo.videoId}
           currentTitle={editVideo.title}
           currentDescription={editVideo.description}
+          currentCategory={editVideo.category}
           onClose={() => setEditVideo(null)}
           onSaved={fetchVideos}
         />

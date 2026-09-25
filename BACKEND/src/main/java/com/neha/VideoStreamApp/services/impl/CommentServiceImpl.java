@@ -78,6 +78,7 @@ public class CommentServiceImpl implements CommentService {
         }
 
         // Sirf top-level comments lao, har ek ke replies nested-list ke roop mein saath mein aayenge
+        // Hidden comments bhi bhejte hain taaki frontend bataye ki yeh comment hidden hai
         return commentRepository.findByVideo_VideoIdAndParentCommentIsNullOrderByCreatedAtDesc(videoId)
                 .stream()
                 .map(this::mapToDtoWithReplies)
@@ -119,6 +120,22 @@ public class CommentServiceImpl implements CommentService {
         commentRepository.delete(comment);
     }
 
+    @Override
+    public CommentDto hideComment(String commentId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+        comment.setHidden(true);
+        return mapToDto(commentRepository.save(comment));
+    }
+
+    @Override
+    public CommentDto unhideComment(String commentId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+        comment.setHidden(false);
+        return mapToDto(commentRepository.save(comment));
+    }
+
     private CommentDto mapToDto(Comment comment) {
         return CommentDto.builder()
                 .id(comment.getId())
@@ -130,6 +147,7 @@ public class CommentServiceImpl implements CommentService {
                 .userName(comment.getUser().getName())
                 .userEmail(comment.getUser().getEmail())
                 .parentCommentId(comment.getParentComment() != null ? comment.getParentComment().getId() : null)
+                .hidden(comment.isHidden())
                 .build();
     }
 

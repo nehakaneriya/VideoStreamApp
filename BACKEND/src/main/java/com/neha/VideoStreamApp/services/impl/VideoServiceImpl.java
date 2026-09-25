@@ -415,7 +415,7 @@ public class VideoServiceImpl implements VideoService {
 
     @Override
     @Transactional
-    public VideoDto update(String videoId, String title, String description) {
+    public VideoDto update(String videoId, String title, String description, String category) {
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Video not found"));
 
@@ -425,6 +425,11 @@ public class VideoServiceImpl implements VideoService {
         }
         if (description != null) {
             video.setDescription(description);
+        }
+
+        // Category update
+        if (category != null && !category.isBlank()) {
+            video.setCategory(category.trim().toLowerCase());
         }
 
         Video updatedVideo = videoRepository.save(video);
